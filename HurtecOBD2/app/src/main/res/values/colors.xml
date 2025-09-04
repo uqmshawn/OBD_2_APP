@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hurtec Dark Blue to Black Palette -->
+    <color name="hurtec_primary">#1E3A8A</color>
+    <color name="hurtec_primary_variant">#1E40AF</color>
+    <color name="hurtec_secondary">#3B82F6</color>
+    <color name="hurtec_secondary_variant">#60A5FA</color>
+    <color name="hurtec_accent">#06B6D4</color>
+    <color name="hurtec_surface">#0F172A</color>
+    <color name="hurtec_surface_variant">#1E293B</color>
+    <color name="hurtec_background">#020617</color>
+    <color name="hurtec_background_variant">#0F172A</color>
+    <color name="hurtec_on_primary">#FFFFFF</color>
+    <color name="hurtec_on_secondary">#FFFFFF</color>
+    <color name="hurtec_on_surface">#E2E8F0</color>
+    <color name="hurtec_on_background">#F1F5F9</color>
+
+    <!-- Material Design 3 Colors - Dark Theme Optimized -->
+    <color name="md_theme_light_primary">@color/hurtec_primary</color>
+    <color name="md_theme_light_onPrimary">@color/hurtec_on_primary</color>
+    <color name="md_theme_light_primaryContainer">#334155</color>
+    <color name="md_theme_light_onPrimaryContainer">#E2E8F0</color>
+    <color name="md_theme_light_secondary">@color/hurtec_secondary</color>
+    <color name="md_theme_light_onSecondary">@color/hurtec_on_secondary</color>
+    <color name="md_theme_light_secondaryContainer">#475569</color>
+    <color name="md_theme_light_onSecondaryContainer">#CBD5E1</color>
+    <color name="md_theme_light_tertiary">@color/hurtec_accent</color>
+    <color name="md_theme_light_onTertiary">#FFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#164E63</color>
+    <color name="md_theme_light_onTertiaryContainer">#A5F3FC</color>
+    <color name="md_theme_light_error">#EF4444</color>
+    <color name="md_theme_light_errorContainer">#7F1D1D</color>
+    <color name="md_theme_light_onError">#FFFFFF</color>
+    <color name="md_theme_light_onErrorContainer">#FEE2E2</color>
+    <color name="md_theme_light_background">@color/hurtec_background</color>
+    <color name="md_theme_light_onBackground">@color/hurtec_on_background</color>
+    <color name="md_theme_light_surface">@color/hurtec_surface</color>
+    <color name="md_theme_light_onSurface">@color/hurtec_on_surface</color>
+    <color name="md_theme_light_surfaceVariant">@color/hurtec_surface_variant</color>
+    <color name="md_theme_light_onSurfaceVariant">#94A3B8</color>
+    <color name="md_theme_light_outline">#64748B</color>
+    <color name="md_theme_light_inverseOnSurface">@color/hurtec_background</color>
+    <color name="md_theme_light_inverseSurface">@color/hurtec_on_surface</color>
+    <color name="md_theme_light_inversePrimary">@color/hurtec_secondary_variant</color>
+    <color name="md_theme_light_shadow">#000000</color>
+    <color name="md_theme_light_surfaceTint">@color/hurtec_primary</color>
+    <color name="md_theme_light_outlineVariant">#475569</color>
+    <color name="md_theme_light_scrim">#000000</color>
+
+    <!-- Dark Theme Colors - Hurtec Optimized -->
+    <color name="md_theme_dark_primary">@color/hurtec_secondary_variant</color>
+    <color name="md_theme_dark_onPrimary">@color/hurtec_background</color>
+    <color name="md_theme_dark_primaryContainer">@color/hurtec_primary</color>
+    <color name="md_theme_dark_onPrimaryContainer">@color/hurtec_on_surface</color>
+    <color name="md_theme_dark_secondary">@color/hurtec_accent</color>
+    <color name="md_theme_dark_onSecondary">@color/hurtec_background</color>
+    <color name="md_theme_dark_secondaryContainer">#0E7490</color>
+    <color name="md_theme_dark_onSecondaryContainer">#CFFAFE</color>
+    <color name="md_theme_dark_tertiary">#A78BFA</color>
+    <color name="md_theme_dark_onTertiary">#1E1B4B</color>
+    <color name="md_theme_dark_tertiaryContainer">#3730A3</color>
+    <color name="md_theme_dark_onTertiaryContainer">#E0E7FF</color>
+    <color name="md_theme_dark_error">#F87171</color>
+    <color name="md_theme_dark_errorContainer">#991B1B</color>
+    <color name="md_theme_dark_onError">#FFFFFF</color>
+    <color name="md_theme_dark_onErrorContainer">#FEE2E2</color>
+    <color name="md_theme_dark_background">@color/hurtec_background</color>
+    <color name="md_theme_dark_onBackground">@color/hurtec_on_background</color>
+    <color name="md_theme_dark_surface">@color/hurtec_surface</color>
+    <color name="md_theme_dark_onSurface">@color/hurtec_on_surface</color>
+    <color name="md_theme_dark_surfaceVariant">@color/hurtec_surface_variant</color>
+    <color name="md_theme_dark_onSurfaceVariant">#94A3B8</color>
+    <color name="md_theme_dark_outline">#64748B</color>
+    <color name="md_theme_dark_inverseOnSurface">@color/hurtec_background</color>
+    <color name="md_theme_dark_inverseSurface">@color/hurtec_on_surface</color>
+    <color name="md_theme_dark_inversePrimary">@color/hurtec_primary</color>
+    <color name="md_theme_dark_shadow">#000000</color>
+    <color name="md_theme_dark_surfaceTint">@color/hurtec_secondary_variant</color>
+    <color name="md_theme_dark_outlineVariant">#475569</color>
+    <color name="md_theme_dark_scrim">#000000</color>
+
+    <!-- Hurtec Futuristic Accent Colors -->
+    <color name="hurtec_neon_blue">#00D4FF</color>
+    <color name="hurtec_neon_cyan">#00F5FF</color>
+    <color name="hurtec_neon_teal">#00FFD4</color>
+    <color name="hurtec_electric_blue">#0080FF</color>
+    <color name="hurtec_deep_blue">#003D82</color>
+
+    <!-- Status Colors - Hurtec Theme -->
+    <color name="status_connected">#10B981</color>
+    <color name="status_connecting">#F59E0B</color>
+    <color name="status_disconnected">#EF4444</color>
+    <color name="status_error">#DC2626</color>
+    <color name="status_warning">#F97316</color>
+
+    <!-- Gauge Colors -->
+    <color name="gauge_normal">#10B981</color>
+    <color name="gauge_warning">#F59E0B</color>
+    <color name="gauge_critical">#EF4444</color>
+    <color name="gauge_background">#1E293B</color>
+    <color name="gauge_text">#E2E8F0</color>
+
+    <!-- Card and Surface Colors -->
+    <color name="card_background">#0F172A</color>
+    <color name="card_elevated">#1E293B</color>
+    <color name="divider_color">#334155</color>
+    <color name="shimmer_base">#1E293B</color>
+    <color name="shimmer_highlight">#334155</color>
+</resources>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="@color/hurtec_primary"
+        android:pathData="M24,24m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0" />
+    
+    <!-- Inner circle -->
+    <path
+        android:fillColor="@color/hurtec_surface"
+        android:pathData="M24,24m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0" />
+    
+    <!-- OBD connector icon -->
+    <path
+        android:fillColor="@color/hurtec_neon_cyan"
+        android:pathData="M16,18h16v2h-16z" />
+    <path
+        android:fillColor="@color/hurtec_neon_cyan"
+        android:pathData="M16,22h16v2h-16z" />
+    <path
+        android:fillColor="@color/hurtec_neon_cyan"
+        android:pathData="M16,26h16v2h-16z" />
+    <path
+        android:fillColor="@color/hurtec_neon_cyan"
+        android:pathData="M18,16h2v16h-2z" />
+    <path
+        android:fillColor="@color/hurtec_neon_cyan"
+        android:pathData="M28,16h2v16h-2z" />
+        
+</vector>

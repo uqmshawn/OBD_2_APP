@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_device"
+    style="@style/Widget.HurtecOBD2.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Device Icon -->
+        <ImageView
+            android:id="@+id/iv_device_icon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_bluetooth_24"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/hurtec_neon_cyan" />
+
+        <!-- Device Name -->
+        <TextView
+            android:id="@+id/tv_device_name"
+            style="@style/TextAppearance.HurtecOBD2.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="ELM327 OBD-II"
+            app:layout_constraintEnd_toStartOf="@id/tv_paired_status"
+            app:layout_constraintStart_toEndOf="@id/iv_device_icon"
+            app:layout_constraintTop_toTopOf="@id/iv_device_icon"
+            tools:text="ELM327 OBD-II" />
+
+        <!-- Device Address -->
+        <TextView
+            android:id="@+id/tv_device_address"
+            style="@style/TextAppearance.HurtecOBD2.Caption"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="00:1D:A5:68:98:8B"
+            app:layout_constraintEnd_toStartOf="@id/tv_paired_status"
+            app:layout_constraintStart_toEndOf="@id/iv_device_icon"
+            app:layout_constraintTop_toBottomOf="@id/tv_device_name"
+            tools:text="00:1D:A5:68:98:8B" />
+
+        <!-- OBD Indicator -->
+        <TextView
+            android:id="@+id/tv_obd_indicator"
+            style="@style/TextAppearance.HurtecOBD2.Caption"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
+            android:text="OBD-II Device"
+            android:textColor="@color/hurtec_neon_cyan"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@id/tv_paired_status"
+            app:layout_constraintStart_toEndOf="@id/iv_device_icon"
+            app:layout_constraintTop_toBottomOf="@id/tv_device_address"
+            tools:text="OBD-II Device" />
+
+        <!-- Paired Status -->
+        <TextView
+            android:id="@+id/tv_paired_status"
+            style="@style/TextAppearance.HurtecOBD2.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/status_indicator_background"
+            android:backgroundTint="@color/status_connected"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:text="Paired"
+            android:textColor="@color/hurtec_background"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/iv_device_icon"
+            tools:text="Paired" />
+
+        <!-- Connect Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_connect"
+            style="@style/Widget.HurtecOBD2.Button.Primary.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Connect"
+            android:visibility="gone"
+            app:icon="@drawable/ic_bluetooth_connected_24"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_paired_status"
+            tools:visibility="visible" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

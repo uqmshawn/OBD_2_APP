@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme - Hurtec Dark Theme -->
+    <style name="Theme.HurtecOBD2" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/md_theme_dark_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_dark_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_dark_onPrimaryContainer</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/md_theme_dark_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_dark_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_dark_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_dark_onSecondaryContainer</item>
+
+        <!-- Tertiary brand color -->
+        <item name="colorTertiary">@color/md_theme_dark_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_dark_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_dark_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_dark_onTertiaryContainer</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/md_theme_dark_error</item>
+        <item name="colorOnError">@color/md_theme_dark_onError</item>
+        <item name="colorErrorContainer">@color/md_theme_dark_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_theme_dark_onErrorContainer</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/md_theme_dark_background</item>
+        <item name="colorOnBackground">@color/md_theme_dark_onBackground</item>
+        <item name="colorSurface">@color/md_theme_dark_surface</item>
+        <item name="colorOnSurface">@color/md_theme_dark_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_dark_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_dark_onSurfaceVariant</item>
+
+        <!-- Outline colors -->
+        <item name="colorOutline">@color/md_theme_dark_outline</item>
+        <item name="colorOutlineVariant">@color/md_theme_dark_outlineVariant</item>
+
+        <!-- Status bar - Dark theme -->
+        <item name="android:statusBarColor">@color/hurtec_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Navigation bar - Dark theme -->
+        <item name="android:navigationBarColor">@color/hurtec_surface</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- Window flags for immersive experience -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+    </style>
+
+    <!-- Theme without action bar -->
+    <style name="Theme.HurtecOBD2.NoActionBar" parent="Theme.HurtecOBD2">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+
+
+    <!-- Hurtec Card Styles -->
+    <style name="Widget.HurtecOBD2.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">12dp</item>
+        <item name="android:layout_margin">12dp</item>
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="strokeColor">@color/hurtec_primary</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.HurtecOBD2.Card.Gauge" parent="Widget.HurtecOBD2.Card">
+        <item name="cardCornerRadius">24dp</item>
+        <item name="cardElevation">16dp</item>
+        <item name="cardBackgroundColor">@color/gauge_background</item>
+        <item name="strokeColor">@color/hurtec_neon_blue</item>
+        <item name="strokeWidth">2dp</item>
+    </style>
+
+    <!-- Hurtec Button Styles -->
+    <style name="Widget.HurtecOBD2.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">16dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="backgroundTint">@color/hurtec_primary</item>
+        <item name="android:textColor">@color/hurtec_on_primary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Widget.HurtecOBD2.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">16dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="strokeColor">@color/hurtec_secondary</item>
+        <item name="android:textColor">@color/hurtec_secondary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Widget.HurtecOBD2.Button.Connect" parent="Widget.HurtecOBD2.Button">
+        <item name="backgroundTint">@color/hurtec_neon_blue</item>
+        <item name="android:textColor">@color/hurtec_background</item>
+        <item name="cornerRadius">20dp</item>
+    </style>
+
+    <!-- Hurtec Text Styles -->
+    <style name="TextAppearance.HurtecOBD2.Headline" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:textColor">@color/hurtec_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.HurtecOBD2.Title" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/hurtec_secondary_variant</item>
+    </style>
+
+    <style name="TextAppearance.HurtecOBD2.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/hurtec_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.HurtecOBD2.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/md_theme_dark_onSurfaceVariant</item>
+    </style>
+
+    <style name="TextAppearance.HurtecOBD2.Value" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:textColor">@color/hurtec_neon_cyan</item>
+    </style>
+
+    <!-- Hurtec FAB Style -->
+    <style name="Widget.HurtecOBD2.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/hurtec_accent</item>
+        <item name="tint">@color/hurtec_background</item>
+        <item name="elevation">16dp</item>
+    </style>
+</resources>

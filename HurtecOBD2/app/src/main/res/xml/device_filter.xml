@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- USB device filters for OBD-II adapters -->
+    <usb-device vendor-id="1027" product-id="24577" />
+    <usb-device vendor-id="1659" product-id="8963" />
+    <usb-device vendor-id="1027" product-id="24597" />
+</resources>

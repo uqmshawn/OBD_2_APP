@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.HurtecOBD2.Card.Gauge"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Gauge Title -->
+        <TextView
+            android:id="@+id/tv_gauge_title"
+            style="@style/TextAppearance.HurtecOBD2.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:text="Engine RPM"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Engine RPM" />
+
+        <!-- Modern Gauge -->
+        <com.github.anastr.speedviewlib.AwesomeSpeedometer
+            android:id="@+id/gauge_speedometer"
+            android:layout_width="0dp"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_gauge_title"
+            app:sv_backgroundCircleColor="#1E293B"
+            app:sv_speedometerColor="#3B82F6"
+            app:sv_speedometerMode="TOP"
+            app:sv_indicatorColor="#00F5FF"
+            app:sv_speedTextColor="#00F5FF"
+            app:sv_speedTextPosition="BOTTOM_CENTER"
+            app:sv_speedTextSize="18sp"
+            app:sv_textColor="#E2E8F0"
+            app:sv_textSize="10sp"
+            app:sv_trianglesColor="#60A5FA"
+            app:sv_cutPadding="20dp"
+            app:sv_withTremble="false" />
+
+        <!-- Current Value Display -->
+        <LinearLayout
+            android:id="@+id/ll_value_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/gauge_speedometer">
+
+            <TextView
+                android:id="@+id/tv_current_value"
+                style="@style/TextAppearance.HurtecOBD2.Value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                tools:text="2500" />
+
+            <TextView
+                android:id="@+id/tv_unit"
+                style="@style/TextAppearance.HurtecOBD2.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="RPM"
+                tools:text="RPM" />
+
+        </LinearLayout>
+
+        <!-- Status Indicator -->
+        <View
+            android:id="@+id/status_indicator"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/status_indicator_background"
+            android:backgroundTint="@color/gauge_normal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ll_value_container" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>
