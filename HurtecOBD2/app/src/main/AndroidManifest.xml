@@ -33,7 +33,11 @@
     
     <!-- Foreground service for continuous OBD monitoring -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    
+
+    <!-- Hardware acceleration and performance -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
+
     <!-- Hardware features -->
     <uses-feature
         android:name="android.hardware.bluetooth"
@@ -41,8 +45,24 @@
     <uses-feature
         android:name="android.hardware.usb.host"
         android:required="false" />
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.accelerometer"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.gyroscope"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.barometer"
+        android:required="false" />
 
     <application
+        android:name=".HurtecApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -51,15 +71,31 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.HurtecOBD2"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:vmSafeMode="false"
         tools:targetApi="31">
         
+        <!-- Modern Compose Activity -->
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.ModernMainActivity"
             android:exported="true"
-            android:theme="@style/Theme.HurtecOBD2.NoActionBar">
+            android:theme="@style/Theme.HurtecOBD2"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Legacy Activity (for fallback) -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.HurtecOBD2.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             
             <!-- USB device attachment -->

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_device"
+    style="@style/Widget.HurtecOBD2.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Device Icon -->
+        <ImageView
+            android:id="@+id/iv_device_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_bluetooth_24"
+            android:tint="@color/hurtec_neon_cyan"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Device Name -->
+        <TextView
+            android:id="@+id/tv_device_name"
+            style="@style/TextAppearance.HurtecOBD2.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toStartOf="@id/tv_paired_status"
+            app:layout_constraintStart_toEndOf="@id/iv_device_icon"
+            app:layout_constraintTop_toTopOf="@id/iv_device_icon"
+            tools:text="OBD-II Adapter" />
+
+        <!-- Device Address -->
+        <TextView
+            android:id="@+id/tv_device_address"
+            style="@style/TextAppearance.HurtecOBD2.Body"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="@id/tv_device_name"
+            app:layout_constraintStart_toStartOf="@id/tv_device_name"
+            app:layout_constraintTop_toBottomOf="@id/tv_device_name"
+            tools:text="00:11:22:33:44:55" />
+
+        <!-- OBD Indicator -->
+        <TextView
+            android:id="@+id/tv_obd_indicator"
+            style="@style/TextAppearance.HurtecOBD2.Caption"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/hurtec_neon_cyan"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="@id/tv_device_address"
+            app:layout_constraintStart_toStartOf="@id/tv_device_address"
+            app:layout_constraintTop_toBottomOf="@id/tv_device_address"
+            tools:text="OBD-II Device" />
+
+        <!-- Paired Status -->
+        <TextView
+            android:id="@+id/tv_paired_status"
+            style="@style/TextAppearance.HurtecOBD2.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_status_chip"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/iv_device_icon"
+            tools:text="Paired" />
+
+        <!-- Signal Strength -->
+        <TextView
+            android:id="@+id/tv_signal_strength"
+            style="@style/TextAppearance.HurtecOBD2.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="11sp"
+            app:layout_constraintEnd_toEndOf="@id/tv_paired_status"
+            app:layout_constraintTop_toBottomOf="@id/tv_paired_status"
+            tools:text="-45 dBm" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

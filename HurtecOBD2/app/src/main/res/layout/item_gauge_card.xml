@@ -26,27 +26,16 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Engine RPM" />
 
-        <!-- Modern Gauge -->
-        <com.github.anastr.speedviewlib.AwesomeSpeedometer
-            android:id="@+id/gauge_speedometer"
+        <!-- Simplified Gauge Placeholder -->
+        <View
+            android:id="@+id/gauge_placeholder"
             android:layout_width="0dp"
             android:layout_height="180dp"
             android:layout_marginTop="8dp"
+            android:background="@color/hurtec_surface_variant"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_gauge_title"
-            app:sv_backgroundCircleColor="#1E293B"
-            app:sv_speedometerColor="#3B82F6"
-            app:sv_speedometerMode="TOP"
-            app:sv_indicatorColor="#00F5FF"
-            app:sv_speedTextColor="#00F5FF"
-            app:sv_speedTextPosition="BOTTOM_CENTER"
-            app:sv_speedTextSize="18sp"
-            app:sv_textColor="#E2E8F0"
-            app:sv_textSize="10sp"
-            app:sv_trianglesColor="#60A5FA"
-            app:sv_cutPadding="20dp"
-            app:sv_withTremble="false" />
+            app:layout_constraintTop_toBottomOf="@id/tv_gauge_title" />
 
         <!-- Current Value Display -->
         <LinearLayout
@@ -58,7 +47,7 @@
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/gauge_speedometer">
+            app:layout_constraintTop_toBottomOf="@id/gauge_placeholder">
 
             <TextView
                 android:id="@+id/tv_current_value"

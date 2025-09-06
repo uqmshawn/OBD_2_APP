@@ -14,7 +14,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
+import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.hurtec.obd2.diagnostics.R
@@ -23,7 +23,7 @@ import com.hurtec.obd2.diagnostics.databinding.FragmentBluetoothScannerBinding
 /**
  * Fragment for scanning and selecting Bluetooth OBD-II devices
  */
-class BluetoothScannerFragment : Fragment() {
+class BluetoothScannerFragment : DialogFragment() {
 
     private var _binding: FragmentBluetoothScannerBinding? = null
     private val binding get() = _binding!!

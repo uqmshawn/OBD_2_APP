@@ -1,23 +1,37 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+    id 'kotlinx-serialization'
+    id 'kotlin-parcelize'
 }
 
 android {
     namespace 'com.hurtec.obd2.diagnostics'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.hurtec.obd2.diagnostics"
-        minSdk 24
-        targetSdk 34
+        minSdk 26  // Modern minimum for better performance
+        targetSdk 35
         versionCode 1
-        versionName "1.0.0"
+        versionName "2.0.0-modern"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        
+        testInstrumentationRunner "com.hurtec.obd2.diagnostics.HurtecTestRunner"
+
         vectorDrawables {
             useSupportLibrary true
+        }
+
+        // Room schema export
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += [
+                    "room.schemaLocation": "$projectDir/schemas".toString(),
+                    "room.incremental": "true"
+                ]
+            }
         }
     }
 
@@ -40,10 +54,21 @@ android {
 
     kotlinOptions {
         jvmTarget = '17'
+        freeCompilerArgs += [
+            '-opt-in=kotlin.RequiresOptIn',
+            '-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi',
+            '-opt-in=androidx.compose.material3.ExperimentalMaterial3Api',
+            '-opt-in=androidx.compose.foundation.ExperimentalFoundationApi'
+        ]
     }
 
     buildFeatures {
-        viewBinding true
+        compose true
+        buildConfig true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.8'
     }
 
     packaging {
@@ -54,50 +79,147 @@ android {
 }
 
 dependencies {
-    implementation project(':library')
-
-    // Core Android
+    // Core Android & Kotlin
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.activity:activity-ktx:1.8.2'
-    implementation 'androidx.fragment:fragment-ktx:1.6.2'
-
-    // Material Design
-    implementation 'com.google.android.material:material:1.11.0'
-
-    // Constraint Layout
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    // Architecture Components
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-
-    // Navigation
+    implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.7.6'
     implementation 'androidx.navigation:navigation-ui-ktx:2.7.6'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0'
 
-    // RecyclerView
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    // Room Database - Temporarily disabled
+    // implementation 'androidx.room:room-runtime:2.6.1'
+    // implementation 'androidx.room:room-ktx:2.6.1'
+    // kapt 'androidx.room:room-compiler:2.6.1'
 
-    // CardView
-    implementation 'androidx.cardview:cardview:1.0.0'
+    // Kotlinx Serialization
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0'
 
-    // Coordinator Layout
-    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
+    // Jetpack Compose BOM
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3:1.2.0'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.compose.animation:animation'
+    implementation 'androidx.compose.foundation:foundation'
 
-    // Coroutines
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // Architecture Components
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.7.0'
+    implementation 'androidx.navigation:navigation-compose:2.7.6'
+    implementation 'androidx.hilt:hilt-navigation-compose:1.1.0'
 
-    // USB Serial Communication
+    // Dependency Injection
+    implementation 'com.google.dagger:hilt-android:2.48.1'
+    kapt 'com.google.dagger:hilt-compiler:2.48.1'
+
+    // Database
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+    kapt 'androidx.room:room-compiler:2.6.1'
+
+    // Networking
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0'
+
+    // USB Serial Communication (same as AndrOBD)
     implementation 'com.github.mik3y:usb-serial-for-android:3.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
 
-    // Modern Gauges and Charts
-    implementation 'com.github.anastr:speedviewlib:1.6.1'
+    // Bluetooth & Permissions
+    implementation 'androidx.bluetooth:bluetooth:1.0.0-alpha02'
+    implementation 'com.google.accompanist:accompanist-permissions:0.32.0'
+
+    // Performance & Memory Optimization
+    implementation 'com.squareup.leakcanary:leakcanary-android:2.12'
+    implementation 'androidx.profileinstaller:profileinstaller:1.3.1'
+    implementation 'androidx.benchmark:benchmark-macro-junit4:1.2.2'
+
+    // Advanced UI Components (AndrOBD-style)
+    implementation 'com.github.anastr:speedviewlib:1.6.1' // Same as AndrOBD
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    implementation 'com.airbnb.android:lottie-compose:6.3.0'
+    implementation 'androidx.compose.material:material-icons-core:1.6.0'
+    implementation 'androidx.compose.material:material-icons-extended:1.6.0'
+
+    // File & Storage Management
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+    implementation 'com.opencsv:opencsv:5.9'
+    implementation 'org.apache.commons:commons-csv:1.10.0'
+
+    // Location & GPS
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+
+    // WorkManager for background tasks
+    implementation 'androidx.work:work-runtime-ktx:2.9.0'
+    implementation 'androidx.hilt:hilt-work:1.1.0'
+    kapt 'androidx.hilt:hilt-compiler:1.1.0'
+
+    // DataStore for preferences
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+
+    // Charts and Visualization
+    implementation 'com.patrykandpatrick.vico:compose:1.13.1'
+    implementation 'com.patrykandpatrick.vico:compose-m3:1.13.1'
+
+    // Image Loading
+    implementation 'io.coil-kt:coil-compose:2.5.0'
+
+    // System UI Controller
+    implementation 'com.google.accompanist:accompanist-systemuicontroller:0.32.0'
+
+    // Splash Screen
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+
+    // Advanced Networking & Communication
+    implementation 'com.squareup.okio:okio:3.7.0'
+    implementation 'org.java-websocket:Java-WebSocket:1.5.4'
+    implementation 'io.ktor:ktor-client-android:2.3.7'
+    implementation 'io.ktor:ktor-client-websockets:2.3.7'
+
+    // Security & Encryption
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+
+    // Audio & Haptic Feedback
+    implementation 'androidx.media:media:1.7.0'
+    implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
+
+    // Advanced Sensors & Hardware
+    implementation 'androidx.camera:camera-core:1.3.1'
+    implementation 'androidx.camera:camera-camera2:1.3.1'
+    implementation 'androidx.camera:camera-lifecycle:1.3.1'
+
+    // Machine Learning & AI (for advanced diagnostics)
+    implementation 'com.google.mlkit:barcode-scanning:17.2.0'
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+
+    // Advanced Logging & Analytics
+    implementation 'com.jakewharton.timber:timber:5.0.1'
+    implementation 'com.google.firebase:firebase-crashlytics-ktx:18.6.1'
+    implementation 'com.google.firebase:firebase-analytics-ktx:21.5.0'
+
+    // Background Processing & Services
+    implementation 'androidx.concurrent:concurrent-futures-ktx:1.1.0'
+    implementation 'androidx.startup:startup-runtime:1.1.1'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation platform('androidx.compose:compose-bom:2024.02.00')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+
+    // Debug
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
 }

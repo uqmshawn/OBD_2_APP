@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hurtec OBD-II</string>
+
     <string name="app_description">Professional OBD-II Diagnostic Tool</string>
-    
+
     <!-- Navigation -->
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_connection">Connection</string>
     <string name="nav_data">Live Data</string>
     <string name="nav_settings">Settings</string>
     
