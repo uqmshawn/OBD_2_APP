@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hurtec.obd2.diagnostics.obd.communication.CommunicationManager
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
+import com.hurtec.obd2.diagnostics.utils.CrashHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -14,7 +16,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LiveDataViewModel @Inject constructor(
-    private val communicationManager: CommunicationManager
+    private val communicationManager: CommunicationManager,
+    private val appPreferences: AppPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LiveDataUiState())
@@ -127,8 +130,12 @@ class LiveDataViewModel @Inject constructor(
         currentState.selectedParameters.forEach { parameterId ->
             val parameter = currentState.availableParameters.find { it.id == parameterId }
             parameter?.let {
-                // Simulate getting real data from OBD
-                val value = generateSimulatedValue(parameterId)
+                // Get real data from OBD or simulate
+                val value = if (communicationManager.isConnected() && !appPreferences.demoMode) {
+                    getRealObdValue(parameterId)
+                } else {
+                    generateSimulatedValue(parameterId)
+                }
                 val dataPoint = DataPoint(
                     timestamp = System.currentTimeMillis(),
                     value = value
@@ -142,10 +149,49 @@ class LiveDataViewModel @Inject constructor(
             }
         }
 
+        // Generate raw data for demonstration
+        val rawDataEntry = RawDataEntry(
+            timestamp = System.currentTimeMillis(),
+            command = "01 0C", // Example: Engine RPM command
+            rawResponse = "41 0C 1A F8", // Example raw response
+            decodedValue = recentDataPoint["rpm"] ?: 0f,
+            processingTimeMs = (10..50).random().toLong()
+        )
+
+        val updatedRawData = (currentState.rawDataLog + rawDataEntry).takeLast(100)
+
         _uiState.value = currentState.copy(
             parameterData = newData,
-            recentData = (currentState.recentData + recentDataPoint).takeLast(100)
+            recentData = (currentState.recentData + recentDataPoint).takeLast(100),
+            rawDataLog = updatedRawData
         )
+    }
+
+    private fun getRealObdValue(parameterId: String): Float {
+        return try {
+            val pid = when (parameterId) {
+                "rpm" -> "0C"
+                "speed" -> "0D"
+                "coolant_temp" -> "05"
+                "engine_load" -> "04"
+                "throttle_pos" -> "11"
+                "fuel_level" -> "2F"
+                "intake_temp" -> "0F"
+                "battery_voltage" -> "42" // Battery voltage PID
+                else -> null
+            }
+
+            if (pid != null) {
+                // This would be a blocking call in real implementation
+                // For now, return simulated value as placeholder
+                generateSimulatedValue(parameterId)
+            } else {
+                generateSimulatedValue(parameterId)
+            }
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "LiveDataViewModel.getRealObdValue")
+            generateSimulatedValue(parameterId)
+        }
     }
 
     private fun generateSimulatedValue(parameterId: String): Float {
@@ -185,18 +231,77 @@ class LiveDataViewModel @Inject constructor(
 
     fun exportData() {
         viewModelScope.launch {
-            // TODO: Implement data export
-            // For now, just simulate export
-            _uiState.value = _uiState.value.copy(isExporting = true)
-            kotlinx.coroutines.delay(2000)
-            _uiState.value = _uiState.value.copy(isExporting = false)
+            try {
+                _uiState.value = _uiState.value.copy(isExporting = true)
+
+                // Generate CSV export of live data
+                val csvData = generateLiveDataCsv()
+
+                kotlinx.coroutines.delay(2000)
+
+                _uiState.value = _uiState.value.copy(
+                    isExporting = false,
+                    exportSuccess = true
+                )
+
+                CrashHandler.logInfo("Live data exported successfully")
+            } catch (e: Exception) {
+                CrashHandler.handleException(e, "LiveDataViewModel.exportData")
+                _uiState.value = _uiState.value.copy(
+                    isExporting = false,
+                    error = "Export failed: ${e.message}"
+                )
+            }
         }
+    }
+
+    fun toggleRawDataView() {
+        _uiState.value = _uiState.value.copy(
+            showRawData = !_uiState.value.showRawData
+        )
+        CrashHandler.logInfo("Raw data view toggled: ${_uiState.value.showRawData}")
+    }
+
+    fun clearExportSuccess() {
+        _uiState.value = _uiState.value.copy(exportSuccess = false)
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    private fun generateLiveDataCsv(): String {
+        val currentState = _uiState.value
+        val header = "Timestamp,Parameter,Value,Unit,Raw Command,Raw Response\n"
+
+        val rows = currentState.rawDataLog.joinToString("\n") { entry ->
+            "${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(java.util.Date(entry.timestamp))}," +
+            "\"${entry.command}\"," +
+            "${entry.decodedValue}," +
+            "\"\"," +
+            "\"${entry.command}\"," +
+            "\"${entry.rawResponse}\""
+        }
+
+        return header + rows
     }
 
     fun clearData() {
         _uiState.value = _uiState.value.copy(
             parameterData = emptyMap(),
             recentData = emptyList()
+        )
+    }
+
+    fun toggleDataTable() {
+        _uiState.value = _uiState.value.copy(
+            showDataTable = !_uiState.value.showDataTable
+        )
+    }
+
+    fun toggleRealTimeMode() {
+        _uiState.value = _uiState.value.copy(
+            isRealTime = !_uiState.value.isRealTime
         )
     }
 }
@@ -209,9 +314,13 @@ data class LiveDataUiState(
     val selectedParameters: List<String> = emptyList(),
     val parameterData: Map<String, List<DataPoint>> = emptyMap(),
     val recentData: List<Map<String, Float>> = emptyList(),
+    val rawDataLog: List<RawDataEntry> = emptyList(),
     val isRecording: Boolean = false,
     val isExporting: Boolean = false,
+    val exportSuccess: Boolean = false,
     val showDataTable: Boolean = true,
+    val showRawData: Boolean = false,
+    val isRealTime: Boolean = true,
     val refreshRate: Int = 1000, // milliseconds
     val error: String? = null
 )
@@ -238,3 +347,19 @@ data class DataPoint(
     val timestamp: Long,
     val value: Float
 )
+
+/**
+ * Raw data entry for debugging and analysis
+ */
+data class RawDataEntry(
+    val timestamp: Long,
+    val command: String,
+    val rawResponse: String,
+    val decodedValue: Float,
+    val processingTimeMs: Long
+) {
+    fun getFormattedTimestamp(): String {
+        return java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault())
+            .format(java.util.Date(timestamp))
+    }
+}

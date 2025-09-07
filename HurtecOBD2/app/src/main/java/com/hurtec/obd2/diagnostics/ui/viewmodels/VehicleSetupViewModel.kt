@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hurtec.obd2.diagnostics.database.entities.VehicleEntity
 import com.hurtec.obd2.diagnostics.database.repository.VehicleRepository
+import com.hurtec.obd2.diagnostics.obd.communication.CommunicationManager
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
 import com.hurtec.obd2.diagnostics.utils.CrashHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -16,7 +18,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class VehicleSetupViewModel @Inject constructor(
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val communicationManager: CommunicationManager,
+    private val appPreferences: AppPreferences
 ) : ViewModel() {
     
     private val _uiState = mutableStateOf<UiState>(UiState.Idle)
@@ -34,6 +38,10 @@ class VehicleSetupViewModel @Inject constructor(
                 
                 if (result.isSuccess) {
                     val vehicleId = result.getOrThrow()
+
+                    // Mark this vehicle as active and setup as complete
+                    appPreferences.markSetupComplete(vehicleId)
+
                     CrashHandler.logInfo("Vehicle added successfully with ID: $vehicleId")
                     _uiState.value = UiState.Success(vehicleId)
                 } else {
@@ -48,6 +56,44 @@ class VehicleSetupViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Detect VIN from OBD connection
+     */
+    fun detectVinFromObd(onVinDetected: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = UiState.Loading
+
+                // Check if connected to OBD
+                if (!communicationManager.isConnected()) {
+                    _uiState.value = UiState.Error("Please connect to OBD adapter first")
+                    return@launch
+                }
+
+                // Request VIN using Mode 09 PID 02
+                val vinResult = communicationManager.getVehicleInfo()
+
+                if (vinResult.isSuccess) {
+                    val vehicleInfo = vinResult.getOrNull()
+                    val detectedVin = vehicleInfo?.vin ?: ""
+
+                    if (detectedVin.isNotEmpty() && detectedVin.length == 17) {
+                        onVinDetected(detectedVin)
+                        _uiState.value = UiState.Idle
+                        CrashHandler.logInfo("VIN detected from OBD: $detectedVin")
+                    } else {
+                        _uiState.value = UiState.Error("Invalid VIN received from vehicle")
+                    }
+                } else {
+                    _uiState.value = UiState.Error("Failed to read VIN from vehicle: ${vinResult.exceptionOrNull()?.message}")
+                }
+            } catch (e: Exception) {
+                CrashHandler.handleException(e, "VehicleSetupViewModel.detectVinFromObd")
+                _uiState.value = UiState.Error("VIN detection failed: ${e.message}")
+            }
+        }
+    }
+
     /**
      * Reset UI state
      */

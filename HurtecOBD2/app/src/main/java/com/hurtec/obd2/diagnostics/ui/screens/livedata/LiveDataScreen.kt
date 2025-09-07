@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -33,6 +34,8 @@ fun LiveDataScreen(
     viewModel: LiveDataViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var showRawData by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -89,7 +92,7 @@ fun LiveDataScreen(
                 
                 // Settings
                 IconButton(
-                    onClick = { /* TODO: Open settings */ }
+                    onClick = { showSettingsDialog = true }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
@@ -148,7 +151,77 @@ fun LiveDataScreen(
                     )
                 }
             }
+
+            // Raw data display
+            if (showRawData) {
+                item {
+                    RawDataDisplay(
+                        rawDataLog = uiState.rawDataLog.map { "${it.getFormattedTimestamp()} CMD: ${it.command} -> ${it.rawResponse}" }
+                    )
+                }
+            }
         }
+    }
+
+    // Settings Dialog
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = { Text("Live Data Settings") },
+            text = {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRawData = !showRawData }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = showRawData,
+                            onCheckedChange = { showRawData = it }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Show Raw ECU Data")
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.toggleDataTable() }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = uiState.showDataTable,
+                            onCheckedChange = { viewModel.toggleDataTable() }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Show Data Table")
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.toggleRealTimeMode() }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = uiState.isRealTime,
+                            onCheckedChange = { viewModel.toggleRealTimeMode() }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Real-time Updates")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSettingsDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }
 
@@ -348,6 +421,56 @@ fun DataTable(
                 if (index < data.size - 1) {
                     Spacer(modifier = Modifier.height(4.dp))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun RawDataDisplay(
+    rawDataLog: List<String>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Raw ECU Data",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                reverseLayout = true // Show newest data at top
+            ) {
+                items(rawDataLog.takeLast(50)) { rawData ->
+                    Text(
+                        text = rawData,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+
+            if (rawDataLog.isEmpty()) {
+                Text(
+                    text = "No raw data available. Connect to OBD device to see ECU responses.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.compose.runtime.collectAsState
 import com.hurtec.obd2.diagnostics.database.entities.VehicleEntity
 import com.hurtec.obd2.diagnostics.ui.viewmodels.VehicleSetupViewModel
 
@@ -45,13 +46,16 @@ fun VehicleSetupScreen(
     var errorMessage by remember { mutableStateOf("") }
     
     val scrollState = rememberScrollState()
-    
+    val uiState by viewModel.uiState
+
     // Observe ViewModel state
-    LaunchedEffect(viewModel.uiState) {
-        when (val state = viewModel.uiState.value) {
+    LaunchedEffect(uiState) {
+        when (val state = uiState) {
             is VehicleSetupViewModel.UiState.Success -> {
-                navController.navigate("main") {
-                    popUpTo("welcome") { inclusive = true }
+                isLoading = false
+                // Navigate to dashboard after successful vehicle addition
+                navController.navigate("dashboard") {
+                    popUpTo("vehicle_setup") { inclusive = true }
                 }
             }
             is VehicleSetupViewModel.UiState.Error -> {
@@ -193,7 +197,7 @@ fun VehicleSetupScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // VIN
+        // VIN with detection button
         OutlinedTextField(
             value = vin,
             onValueChange = { if (it.length <= 17) vin = it.uppercase() },
@@ -202,10 +206,28 @@ fun VehicleSetupScreen(
             leadingIcon = {
                 Icon(Icons.Default.QrCode, contentDescription = null)
             },
+            trailingIcon = {
+                IconButton(
+                    onClick = {
+                        // Implement real VIN detection from OBD
+                        viewModel.detectVinFromObd { detectedVin ->
+                            if (detectedVin.isNotEmpty()) {
+                                vin = detectedVin
+                            }
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bluetooth,
+                        contentDescription = "Detect VIN from OBD",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             supportingText = {
-                Text("${vin.length}/17 characters")
+                Text("${vin.length}/17 characters • Tap Bluetooth icon to detect from OBD")
             }
         )
         

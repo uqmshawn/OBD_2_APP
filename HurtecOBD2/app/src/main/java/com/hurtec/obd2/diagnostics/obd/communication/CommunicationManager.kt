@@ -416,6 +416,75 @@ class CommunicationManager @Inject constructor(
      * Get buffered data for a specific PID
      */
     fun getBufferedData(pid: String) = dataProcessor.getBufferedData(pid)
+
+    /**
+     * Read diagnostic trouble codes
+     */
+    suspend fun readDtcs(): Result<List<com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo>> {
+        return try {
+            if (!isConnected()) {
+                return Result.failure(Exception("Not connected to any OBD device"))
+            }
+
+            // For now, return sample DTCs - this would be replaced with actual protocol handler calls
+            val sampleDtcs = listOf(
+                com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo(
+                    code = "P0171",
+                    status = com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus.STORED,
+                    description = "System Too Lean (Bank 1)"
+                ),
+                com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo(
+                    code = "P0300",
+                    status = com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus.PENDING,
+                    description = "Random/Multiple Cylinder Misfire Detected"
+                )
+            )
+            Result.success(sampleDtcs)
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "CommunicationManager.readDtcs")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Clear diagnostic trouble codes
+     */
+    suspend fun clearDtcs(): Result<Unit> {
+        return try {
+            if (!isConnected()) {
+                return Result.failure(Exception("Not connected to any OBD device"))
+            }
+
+            // For now, simulate clearing DTCs - this would be replaced with actual protocol handler calls
+            kotlinx.coroutines.delay(1000) // Simulate clearing time
+            Result.success(Unit)
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "CommunicationManager.clearDtcs")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get vehicle information (VIN, etc.)
+     */
+    suspend fun getVehicleInfo(): Result<com.hurtec.obd2.diagnostics.obd.elm327.VehicleInfo> {
+        return try {
+            if (!isConnected()) {
+                return Result.failure(Exception("Not connected to any OBD device"))
+            }
+
+            // For now, return sample vehicle info - this would be replaced with actual protocol handler calls
+            val sampleVehicleInfo = com.hurtec.obd2.diagnostics.obd.elm327.VehicleInfo(
+                vin = "1HGBH41JXMN109186",
+                calibrationId = "CAL123456",
+                ecuName = "Honda ECU"
+            )
+            Result.success(sampleVehicleInfo)
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "CommunicationManager.getVehicleInfo")
+            Result.failure(e)
+        }
+    }
 }
 
 /**

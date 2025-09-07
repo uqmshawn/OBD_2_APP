@@ -3,6 +3,9 @@ package com.hurtec.obd2.diagnostics.ui.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hurtec.obd2.diagnostics.utils.CrashHandler
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
+import com.hurtec.obd2.diagnostics.database.repository.VehicleRepository
+import com.hurtec.obd2.diagnostics.database.repository.ObdDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -12,7 +15,11 @@ import javax.inject.Inject
  * ViewModel for the settings screen
  */
 @HiltViewModel
-class SettingsViewModel @Inject constructor() : ViewModel() {
+class SettingsViewModel @Inject constructor(
+    private val appPreferences: AppPreferences,
+    private val vehicleRepository: VehicleRepository,
+    private val obdDataRepository: ObdDataRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -67,8 +74,9 @@ class SettingsViewModel @Inject constructor() : ViewModel() {
     }
 
     fun updateKeepScreenOn(enabled: Boolean) {
+        appPreferences.keepScreenOn = enabled
         _uiState.value = _uiState.value.copy(keepScreenOn = enabled)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Keep screen on updated: $enabled")
     }
 
     fun updateEnableLogging(enabled: Boolean) {
@@ -99,6 +107,12 @@ class SettingsViewModel @Inject constructor() : ViewModel() {
     fun updateTheme(theme: AppTheme) {
         _uiState.value = _uiState.value.copy(theme = theme)
         // TODO: Save to preferences
+    }
+
+    fun updateDemoMode(enabled: Boolean) {
+        appPreferences.demoMode = enabled
+        _uiState.value = _uiState.value.copy(demoMode = enabled)
+        CrashHandler.logInfo("Demo mode updated: $enabled")
     }
 
     fun exportData() {
@@ -170,6 +184,7 @@ data class SettingsUiState(
     val distanceUnit: DistanceUnit = DistanceUnit.MILES,
     val pressureUnit: PressureUnit = PressureUnit.PSI,
     val theme: AppTheme = AppTheme.SYSTEM,
+    val demoMode: Boolean = false,
     val statistics: AppStatistics? = null,
     val isExporting: Boolean = false,
     val isClearing: Boolean = false,

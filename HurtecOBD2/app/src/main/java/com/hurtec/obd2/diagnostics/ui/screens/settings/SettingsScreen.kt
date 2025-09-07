@@ -90,6 +90,13 @@ fun SettingsScreen(
                     onCheckedChange = viewModel::updateKeepScreenOn
                 )
 
+                SwitchSetting(
+                    title = "Demo Mode",
+                    description = "Show simulated data when no OBD device is connected",
+                    checked = uiState.demoMode,
+                    onCheckedChange = viewModel::updateDemoMode
+                )
+
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
                 DropdownSetting(

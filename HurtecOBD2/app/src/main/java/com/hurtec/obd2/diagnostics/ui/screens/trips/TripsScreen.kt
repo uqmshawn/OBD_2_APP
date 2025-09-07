@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -27,6 +28,7 @@ fun TripsScreen(
     viewModel: TripsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showFilterDialog by remember { mutableStateOf(false) }
     
     LazyColumn(
         modifier = Modifier
@@ -68,7 +70,7 @@ fun TripsScreen(
                     }
                     
                     IconButton(
-                        onClick = { /* TODO: Filter trips */ }
+                        onClick = { showFilterDialog = true }
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
@@ -102,6 +104,48 @@ fun TripsScreen(
                 EmptyTripsCard()
             }
         }
+    }
+
+    // Filter Dialog
+    if (showFilterDialog) {
+        AlertDialog(
+            onDismissRequest = { showFilterDialog = false },
+            title = { Text("Filter Trips") },
+            text = {
+                Column {
+                    Text("Select filter option:")
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    com.hurtec.obd2.diagnostics.ui.screens.trips.TripFilter.values().forEach { filter ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.applyFilter(filter)
+                                    showFilterDialog = false
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = uiState.currentFilter == filter,
+                                onClick = {
+                                    viewModel.applyFilter(filter)
+                                    showFilterDialog = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(filter.displayName)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFilterDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }
 

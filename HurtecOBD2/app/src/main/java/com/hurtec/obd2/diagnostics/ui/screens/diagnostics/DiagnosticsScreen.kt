@@ -21,6 +21,7 @@ import com.hurtec.obd2.diagnostics.obd.communication.ConnectionState
 import com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo
 import com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus
 import com.hurtec.obd2.diagnostics.ui.components.*
+import com.hurtec.obd2.diagnostics.ui.viewmodels.DiagnosticsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -75,23 +76,23 @@ fun DiagnosticsScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                onClick = viewModel::loadDtcs,
-                enabled = !uiState.isLoading,
+                onClick = viewModel::scanDtcs,
+                enabled = !uiState.isScanning,
                 modifier = Modifier.weight(1f)
             ) {
-                if (uiState.isLoading) {
+                if (uiState.isScanning) {
                     WaveLoadingIndicator(
                         modifier = Modifier.size(16.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(if (uiState.isLoading) "Reading..." else "Read DTCs")
+                Text(if (uiState.isScanning) "Scanning..." else "Scan DTCs")
             }
 
             OutlinedButton(
                 onClick = viewModel::clearDtcs,
-                enabled = !uiState.isClearing && uiState.hasDtcs,
+                enabled = !uiState.isClearing && uiState.dtcs.isNotEmpty(),
                 modifier = Modifier.weight(1f)
             ) {
                 if (uiState.isClearing) {
@@ -107,44 +108,40 @@ fun DiagnosticsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Last scan time
-        uiState.lastScanTime?.let { time ->
-            val formatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-            Text(
-                text = "Last scan: ${formatter.format(Date(time))}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
         // DTC Summary
-        if (uiState.hasDtcs) {
+        if (uiState.dtcs.isNotEmpty()) {
+            val activeDtcs = uiState.dtcs.filter { it.status == DtcStatus.STORED }
+            val pendingDtcs = uiState.dtcs.filter { it.status == DtcStatus.PENDING }
+            val permanentDtcs = uiState.dtcs.filter { it.status == DtcStatus.PERMANENT }
+
             DtcSummaryCard(
-                activeDtcs = uiState.activeDtcs.size,
-                pendingDtcs = uiState.pendingDtcs.size,
-                permanentDtcs = uiState.permanentDtcs.size
+                activeDtcs = activeDtcs.size,
+                pendingDtcs = pendingDtcs.size,
+                permanentDtcs = permanentDtcs.size
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
         // DTC List or Empty State
-        if (uiState.hasDtcs) {
+        if (uiState.dtcs.isNotEmpty()) {
+            val activeDtcs = uiState.dtcs.filter { it.status == DtcStatus.STORED }
+            val pendingDtcs = uiState.dtcs.filter { it.status == DtcStatus.PENDING }
+
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Active DTCs
-                if (uiState.activeDtcs.isNotEmpty()) {
+                if (activeDtcs.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Active Codes (${uiState.activeDtcs.size})",
+                            text = "Active Codes (${activeDtcs.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-                    itemsIndexed(uiState.activeDtcs) { index, dtc ->
+                    itemsIndexed(activeDtcs) { index, dtc ->
                         SlideInFromBottomTransition(visible = true) {
                             AnimatedCard(
                                 isVisible = true,
@@ -152,8 +149,8 @@ fun DiagnosticsScreen(
                             ) {
                                 DtcCard(
                                     dtc = dtc,
-                                    isLoadingFreezeFrame = uiState.loadingFreezeFrame == dtc.code,
-                                    onGetFreezeFrame = { viewModel.getFreezeFrameData(dtc.code) }
+                                    isLoadingFreezeFrame = false,
+                                    onGetFreezeFrame = { /* TODO: Get freeze frame data */ }
                                 )
                             }
                         }
@@ -161,33 +158,33 @@ fun DiagnosticsScreen(
                 }
 
                 // Pending DTCs
-                if (uiState.pendingDtcs.isNotEmpty()) {
+                if (pendingDtcs.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Pending Codes (${uiState.pendingDtcs.size})",
+                            text = "Pending Codes (${pendingDtcs.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-                    itemsIndexed(uiState.pendingDtcs) { index, dtc ->
+                    itemsIndexed(pendingDtcs) { index, dtc ->
                         SlideInFromBottomTransition(visible = true) {
                             AnimatedCard(
                                 isVisible = true,
-                                delayMillis = (index + uiState.activeDtcs.size) * 150
+                                delayMillis = (index + activeDtcs.size) * 150
                             ) {
                                 DtcCard(
                                     dtc = dtc,
-                                    isLoadingFreezeFrame = uiState.loadingFreezeFrame == dtc.code,
-                                    onGetFreezeFrame = { viewModel.getFreezeFrameData(dtc.code) }
+                                    isLoadingFreezeFrame = false,
+                                    onGetFreezeFrame = { /* TODO: Get freeze frame data */ }
                                 )
                             }
                         }
                     }
                 }
             }
-        } else if (!uiState.isLoading) {
+        } else if (!uiState.isScanning) {
             // Empty state
             Card(
                 modifier = Modifier.fillMaxWidth(),

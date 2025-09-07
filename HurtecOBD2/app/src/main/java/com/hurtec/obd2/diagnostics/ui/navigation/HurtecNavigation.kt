@@ -3,11 +3,12 @@ package com.hurtec.obd2.diagnostics.ui.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,6 +32,9 @@ import com.hurtec.obd2.diagnostics.ui.screens.settings.SettingsScreen
 import com.hurtec.obd2.diagnostics.ui.screens.trips.TripsScreen
 import com.hurtec.obd2.diagnostics.ui.screens.welcome.WelcomeScreen
 import com.hurtec.obd2.diagnostics.ui.screens.setup.VehicleSetupScreen
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.hurtec.obd2.diagnostics.ui.viewmodels.MainViewModel
 
 /**
  * Modern navigation system with Jetpack Compose Navigation
@@ -40,6 +44,8 @@ import com.hurtec.obd2.diagnostics.ui.screens.setup.VehicleSetupScreen
 @Composable
 fun HurtecNavigation() {
     val navController = rememberNavController()
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val mainUiState by mainViewModel.uiState.collectAsState()
     // Simplified navigation for now
     fun navigateToBottomNavItem(item: BottomNavItem) {
         try {
@@ -105,11 +111,20 @@ fun HurtecNavigation() {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = "welcome",
-            modifier = Modifier.padding(innerPadding)
-        ) {
+        // Show loading while determining start destination
+        if (mainUiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            NavHost(
+                navController = navController,
+                startDestination = mainUiState.startDestination,
+                modifier = Modifier.padding(innerPadding)
+            ) {
             composable("welcome") {
                 WelcomeScreen(
                     navController = navController,
@@ -125,8 +140,20 @@ fun HurtecNavigation() {
                 OnboardingScreen(
                     navController = navController,
                     onComplete = {
-                        navController.navigate("vehicle_setup") {
+                        mainViewModel.completeOnboarding()
+                        navController.navigate("permissions") {
                             popUpTo("onboarding") { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable("permissions") {
+                PermissionsScreen(
+                    navController = navController,
+                    onPermissionsGranted = {
+                        navController.navigate("vehicle_setup") {
+                            popUpTo("permissions") { inclusive = true }
                         }
                     }
                 )
@@ -197,6 +224,7 @@ fun HurtecNavigation() {
                     TripsScreen(navController = navController)
                 }
             }
+        }
         }
     }
 }

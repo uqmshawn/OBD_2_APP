@@ -81,7 +81,8 @@
             android:name=".ui.ModernMainActivity"
             android:exported="true"
             android:theme="@style/Theme.HurtecOBD2"
-            android:screenOrientation="portrait">
+            android:screenOrientation="sensor"
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
