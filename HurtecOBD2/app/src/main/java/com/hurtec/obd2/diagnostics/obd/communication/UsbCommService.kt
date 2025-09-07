@@ -63,41 +63,15 @@ class UsbCommService @Inject constructor(
                 )
             }
 
-            // If no real USB devices found, show demo devices
-            if (realDevices.isEmpty()) {
-                CrashHandler.logInfo("No real USB devices found - showing demo devices")
-                getDemoUsbDevices()
-            } else {
-                CrashHandler.logInfo("Found ${realDevices.size} real USB devices")
-                realDevices
-            }
+            CrashHandler.logInfo("Found ${realDevices.size} real USB devices")
+            realDevices
         } catch (e: Exception) {
             CrashHandler.handleException(e, "UsbCommService.getAvailableDevices")
             emptyList() // Return empty list instead of demo devices
         }
     }
 
-    /**
-     * Get demo USB devices for testing
-     */
-    private fun getDemoUsbDevices(): List<ObdDevice> {
-        return listOf(
-            ObdDevice(
-                id = "demo_usb_elm327",
-                name = "Demo: USB ELM327 v1.5",
-                address = "USB:001",
-                type = DeviceType.USB,
-                isConnected = false
-            ),
-            ObdDevice(
-                id = "demo_usb_obdlink",
-                name = "Demo: OBDLink SX USB",
-                address = "USB:002",
-                type = DeviceType.USB,
-                isConnected = false
-            )
-        )
-    }
+
 
     /**
      * Connect to a USB OBD device

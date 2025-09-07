@@ -53,8 +53,8 @@ class BluetoothCommService @Inject constructor(
      */
     fun getPairedDevices(): List<ObdDevice> {
         if (!permissionManager.hasBluetoothPermissions()) {
-            CrashHandler.logError("Missing Bluetooth permissions - showing demo devices")
-            return getDemoBluetoothDevices()
+            CrashHandler.logError("Missing Bluetooth permissions - cannot scan for devices")
+            return emptyList()
         }
 
         return try {
@@ -85,34 +85,7 @@ class BluetoothCommService @Inject constructor(
         }
     }
 
-    /**
-     * Get demo Bluetooth devices for testing
-     */
-    private fun getDemoBluetoothDevices(): List<ObdDevice> {
-        return listOf(
-            ObdDevice(
-                id = "demo_bt_elm327",
-                name = "Demo: ELM327 Bluetooth",
-                address = "00:1D:A5:68:98:8B",
-                type = DeviceType.BLUETOOTH,
-                isConnected = false
-            ),
-            ObdDevice(
-                id = "demo_bt_obdlink",
-                name = "Demo: OBDLink MX+",
-                address = "00:1D:A5:68:98:8C",
-                type = DeviceType.BLUETOOTH,
-                isConnected = false
-            ),
-            ObdDevice(
-                id = "demo_bt_veepeak",
-                name = "Demo: Veepeak OBDCheck BLE",
-                address = "00:1D:A5:68:98:8D",
-                type = DeviceType.BLUETOOTH,
-                isConnected = false
-            )
-        )
-    }
+
 
     /**
      * Connect to a Bluetooth OBD device

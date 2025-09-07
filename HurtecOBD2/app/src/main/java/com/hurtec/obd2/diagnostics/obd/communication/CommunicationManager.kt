@@ -217,16 +217,7 @@ class CommunicationManager @Inject constructor(
             usbCommService.getAvailableDevices()
         } catch (e: Exception) {
             CrashHandler.handleException(e, "CommunicationManager.getAvailableUsbDevices")
-            // Return demo devices if real scanning fails
-            listOf(
-                ObdDevice(
-                    id = "demo_usb_1",
-                    name = "Demo: USB ELM327 (No real device)",
-                    address = "DEMO:USB:001",
-                    type = DeviceType.USB,
-                    isPaired = true
-                )
-            )
+            emptyList()
         }
     }
 
@@ -238,16 +229,7 @@ class CommunicationManager @Inject constructor(
             wifiCommService.getAvailableDevices()
         } catch (e: Exception) {
             CrashHandler.handleException(e, "CommunicationManager.getAvailableWifiDevices")
-            // Return demo devices if real scanning fails
-            listOf(
-                ObdDevice(
-                    id = "demo_wifi_1",
-                    name = "Demo: WiFi ELM327 (No real device)",
-                    address = "DEMO:WIFI:001",
-                    type = DeviceType.WIFI,
-                    isPaired = true
-                )
-            )
+            emptyList()
         }
     }
 
@@ -410,20 +392,44 @@ class CommunicationManager @Inject constructor(
                 return Result.failure(Exception("Not connected to any OBD device"))
             }
 
-            // For now, return sample DTCs - this would be replaced with actual protocol handler calls
-            val sampleDtcs = listOf(
-                com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo(
-                    code = "P0171",
-                    status = com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus.STORED,
-                    description = "System Too Lean (Bank 1)"
-                ),
-                com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo(
-                    code = "P0300",
-                    status = com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus.PENDING,
-                    description = "Random/Multiple Cylinder Misfire Detected"
-                )
-            )
-            Result.success(sampleDtcs)
+            CrashHandler.logInfo("Reading DTCs from vehicle...")
+
+            // Send Mode 03 command to read stored DTCs
+            val storedDtcsResponse = sendObdCommand("03", "Read Stored DTCs")
+            val storedDtcs = mutableListOf<com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo>()
+
+            if (storedDtcsResponse.isSuccess) {
+                val response = storedDtcsResponse.getOrNull() ?: ""
+                val dtcCodes = parseDtcResponse(response)
+                dtcCodes.forEach { code ->
+                    storedDtcs.add(
+                        com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo(
+                            code = code,
+                            status = com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus.STORED,
+                            description = getDtcDescription(code)
+                        )
+                    )
+                }
+            }
+
+            // Send Mode 07 command to read pending DTCs
+            val pendingDtcsResponse = sendObdCommand("07", "Read Pending DTCs")
+            if (pendingDtcsResponse.isSuccess) {
+                val response = pendingDtcsResponse.getOrNull() ?: ""
+                val dtcCodes = parseDtcResponse(response)
+                dtcCodes.forEach { code ->
+                    storedDtcs.add(
+                        com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo(
+                            code = code,
+                            status = com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus.PENDING,
+                            description = getDtcDescription(code)
+                        )
+                    )
+                }
+            }
+
+            CrashHandler.logInfo("Found ${storedDtcs.size} DTCs")
+            Result.success(storedDtcs)
         } catch (e: Exception) {
             CrashHandler.handleException(e, "CommunicationManager.readDtcs")
             Result.failure(e)
@@ -439,12 +445,103 @@ class CommunicationManager @Inject constructor(
                 return Result.failure(Exception("Not connected to any OBD device"))
             }
 
-            // For now, simulate clearing DTCs - this would be replaced with actual protocol handler calls
-            kotlinx.coroutines.delay(1000) // Simulate clearing time
-            Result.success(Unit)
+            CrashHandler.logInfo("Clearing DTCs from vehicle...")
+
+            // Send Mode 04 command to clear DTCs
+            val clearResponse = sendObdCommand("04", "Clear DTCs")
+
+            if (clearResponse.isSuccess) {
+                CrashHandler.logInfo("DTCs cleared successfully")
+                Result.success(Unit)
+            } else {
+                Result.failure(clearResponse.exceptionOrNull() ?: Exception("Failed to clear DTCs"))
+            }
         } catch (e: Exception) {
             CrashHandler.handleException(e, "CommunicationManager.clearDtcs")
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Parse DTC response from OBD command
+     */
+    private fun parseDtcResponse(response: String): List<String> {
+        return try {
+            val cleanResponse = response.replace(" ", "").replace("\r", "").replace("\n", "")
+            val dtcCodes = mutableListOf<String>()
+
+            // Skip the first 2 characters (response header) and parse in pairs of 4 hex characters
+            var i = 2
+            while (i + 3 < cleanResponse.length) {
+                val dtcHex = cleanResponse.substring(i, i + 4)
+                if (dtcHex != "0000") { // 0000 means no more DTCs
+                    val dtcCode = convertHexToDtcCode(dtcHex)
+                    if (dtcCode.isNotEmpty()) {
+                        dtcCodes.add(dtcCode)
+                    }
+                }
+                i += 4
+            }
+
+            dtcCodes
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "CommunicationManager.parseDtcResponse")
+            emptyList()
+        }
+    }
+
+    /**
+     * Convert hex DTC to standard DTC code format
+     */
+    private fun convertHexToDtcCode(hex: String): String {
+        return try {
+            if (hex.length != 4) return ""
+
+            val firstByte = hex.substring(0, 2).toInt(16)
+            val secondByte = hex.substring(2, 4).toInt(16)
+
+            // Determine DTC prefix based on first two bits
+            val prefix = when ((firstByte and 0xC0) shr 6) {
+                0 -> "P0" // Powertrain - standardized
+                1 -> "P1" // Powertrain - manufacturer specific
+                2 -> "C" // Chassis
+                3 -> "B" // Body
+                else -> "U" // Network
+            }
+
+            // Get the remaining 14 bits for the code number
+            val codeNumber = ((firstByte and 0x3F) shl 8) or secondByte
+            val codeString = String.format("%04X", codeNumber)
+
+            "$prefix$codeString"
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "CommunicationManager.convertHexToDtcCode")
+            ""
+        }
+    }
+
+    /**
+     * Get DTC description from code
+     */
+    private fun getDtcDescription(code: String): String {
+        return when (code) {
+            "P0171" -> "System Too Lean (Bank 1)"
+            "P0172" -> "System Too Rich (Bank 1)"
+            "P0174" -> "System Too Lean (Bank 2)"
+            "P0175" -> "System Too Rich (Bank 2)"
+            "P0300" -> "Random/Multiple Cylinder Misfire Detected"
+            "P0301" -> "Cylinder 1 Misfire Detected"
+            "P0302" -> "Cylinder 2 Misfire Detected"
+            "P0303" -> "Cylinder 3 Misfire Detected"
+            "P0304" -> "Cylinder 4 Misfire Detected"
+            "P0420" -> "Catalyst System Efficiency Below Threshold (Bank 1)"
+            "P0430" -> "Catalyst System Efficiency Below Threshold (Bank 2)"
+            "P0441" -> "Evaporative Emission Control System Incorrect Purge Flow"
+            "P0442" -> "Evaporative Emission Control System Leak Detected (small leak)"
+            "P0455" -> "Evaporative Emission Control System Leak Detected (large leak)"
+            "P0506" -> "Idle Control System RPM Lower Than Expected"
+            "P0507" -> "Idle Control System RPM Higher Than Expected"
+            else -> "Unknown diagnostic trouble code"
         }
     }
 

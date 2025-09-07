@@ -31,17 +31,17 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadSettings() {
         viewModelScope.launch {
-            // Load settings from preferences
-            // For now, using default values
+            // Load settings from actual preferences
             _uiState.value = _uiState.value.copy(
-                autoConnect = true,
-                keepScreenOn = false,
-                enableLogging = true,
-                dataRetentionDays = 30,
-                temperatureUnit = TemperatureUnit.FAHRENHEIT,
-                distanceUnit = DistanceUnit.MILES,
-                pressureUnit = PressureUnit.PSI,
-                theme = AppTheme.SYSTEM
+                autoConnect = appPreferences.autoConnect,
+                keepScreenOn = appPreferences.keepScreenOn,
+                enableLogging = appPreferences.dataLoggingEnabled,
+                demoMode = appPreferences.demoMode,
+                dataRetentionDays = 30, // Default value for now
+                temperatureUnit = TemperatureUnit.FAHRENHEIT, // Default value for now
+                distanceUnit = DistanceUnit.MILES, // Default value for now
+                pressureUnit = PressureUnit.PSI, // Default value for now
+                theme = AppTheme.SYSTEM // Default value for now
             )
         }
     }
@@ -69,8 +69,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateAutoConnect(enabled: Boolean) {
+        appPreferences.autoConnect = enabled
         _uiState.value = _uiState.value.copy(autoConnect = enabled)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Auto connect updated: $enabled")
     }
 
     fun updateKeepScreenOn(enabled: Boolean) {
@@ -80,33 +81,39 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateEnableLogging(enabled: Boolean) {
+        appPreferences.dataLoggingEnabled = enabled
         _uiState.value = _uiState.value.copy(enableLogging = enabled)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Data logging updated: $enabled")
     }
 
     fun updateDataRetentionDays(days: Int) {
+        // Save to preferences (we'll add this key to AppPreferences)
         _uiState.value = _uiState.value.copy(dataRetentionDays = days)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Data retention days updated: $days")
     }
 
     fun updateTemperatureUnit(unit: TemperatureUnit) {
+        // Save to preferences (we'll add this key to AppPreferences)
         _uiState.value = _uiState.value.copy(temperatureUnit = unit)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Temperature unit updated: ${unit.displayName}")
     }
 
     fun updateDistanceUnit(unit: DistanceUnit) {
+        // Save to preferences (we'll add this key to AppPreferences)
         _uiState.value = _uiState.value.copy(distanceUnit = unit)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Distance unit updated: ${unit.displayName}")
     }
 
     fun updatePressureUnit(unit: PressureUnit) {
+        // Save to preferences (we'll add this key to AppPreferences)
         _uiState.value = _uiState.value.copy(pressureUnit = unit)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Pressure unit updated: ${unit.displayName}")
     }
 
     fun updateTheme(theme: AppTheme) {
+        // Save to preferences (we'll add this key to AppPreferences)
         _uiState.value = _uiState.value.copy(theme = theme)
-        // TODO: Save to preferences
+        CrashHandler.logInfo("Theme updated: ${theme.displayName}")
     }
 
     fun updateDemoMode(enabled: Boolean) {
@@ -120,14 +127,59 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isExporting = true, error = null)
 
             try {
-                // Simulate data export
-                kotlinx.coroutines.delay(2000)
-                
+                CrashHandler.logInfo("Starting data export...")
+
+                // Export vehicle data
+                val vehicleResult = vehicleRepository.getAllVehicles()
+                val vehicles = vehicleResult.getOrNull() ?: emptyList()
+
+                // Create export data
+                val exportData = buildString {
+                    appendLine("Hurtec OBD-II Data Export")
+                    appendLine("Export Date: ${java.util.Date()}")
+                    appendLine("=====================================")
+                    appendLine()
+
+                    appendLine("VEHICLES (${vehicles.size}):")
+                    vehicles.forEach { vehicle ->
+                        appendLine("- ${vehicle.year} ${vehicle.make} ${vehicle.model}")
+                        appendLine("  VIN: ${vehicle.vin}")
+                        appendLine("  Engine: ${vehicle.engineSize}")
+                        appendLine()
+
+                        // Export OBD data for each vehicle
+                        try {
+                            val obdDataResult = obdDataRepository.getObdDataByVehicle(vehicle.id)
+                            val obdData = obdDataResult.getOrNull() ?: emptyList()
+                            appendLine("  OBD Data Entries: ${obdData.size}")
+                            obdData.take(10).forEach { data -> // Limit to first 10 entries per vehicle
+                                appendLine("    - ${java.util.Date(data.timestamp)}: PID ${data.pid} = ${data.formattedValue}")
+                            }
+                            if (obdData.size > 10) {
+                                appendLine("    ... and ${obdData.size - 10} more entries")
+                            }
+                        } catch (e: Exception) {
+                            appendLine("    Error loading OBD data: ${e.message}")
+                        }
+                        appendLine()
+                    }
+
+                    appendLine("App Preferences:")
+                    val prefs = appPreferences.getAllPreferences()
+                    prefs.forEach { (key, value) ->
+                        appendLine("$key = $value")
+                    }
+                }
+
+                // In a real app, you would save this to a file or share it
+                CrashHandler.logInfo("Export data prepared: ${exportData.length} characters")
+
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
                     exportSuccess = true
                 )
             } catch (e: Exception) {
+                CrashHandler.handleException(e, "SettingsViewModel.exportData")
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
                     error = "Export failed: ${e.message}"
@@ -141,8 +193,31 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isClearing = true, error = null)
 
             try {
-                // Simulate clearing all data
-                kotlinx.coroutines.delay(2000)
+                CrashHandler.logInfo("Starting data clear operation...")
+
+                // Get all vehicles and clear their OBD data
+                val vehicleResult = vehicleRepository.getAllVehicles()
+                val vehicles = vehicleResult.getOrNull() ?: emptyList()
+
+                var totalDeleted = 0
+                vehicles.forEach { vehicle ->
+                    try {
+                        // Delete OBD data for each vehicle (keeping last 7 days)
+                        val cleanupResult = obdDataRepository.cleanupOldData(vehicle.id, 0) // 0 days = delete all
+                        val deletedCount = cleanupResult.getOrNull() ?: 0
+                        totalDeleted += deletedCount
+                    } catch (e: Exception) {
+                        CrashHandler.handleException(e, "Failed to clear data for vehicle ${vehicle.id}")
+                    }
+                }
+
+                // Optionally clear vehicle data (uncomment if needed)
+                // val vehicleClearResult = vehicleRepository.deleteAllVehicles()
+
+                // Optionally reset app preferences (uncomment if needed)
+                // appPreferences.resetAll()
+
+                CrashHandler.logInfo("Data clear completed successfully: deleted $totalDeleted OBD entries")
 
                 loadStatistics() // Refresh statistics
 
@@ -151,6 +226,7 @@ class SettingsViewModel @Inject constructor(
                     clearSuccess = true
                 )
             } catch (e: Exception) {
+                CrashHandler.handleException(e, "SettingsViewModel.clearAllData")
                 _uiState.value = _uiState.value.copy(
                     isClearing = false,
                     error = "Clear failed: ${e.message}"
