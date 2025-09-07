@@ -107,18 +107,13 @@ fun ConnectionScreen(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-                    itemsIndexed(uiState.bluetoothDevices) { index, device ->
-                        AnimatedCard(
-                            isVisible = true,
-                            delayMillis = index * 100
-                        ) {
-                            DeviceCard(
-                                device = device,
-                                isConnecting = uiState.connectingToDevice == device.id,
-                                isConnected = uiState.connectedDevice?.id == device.id,
-                                onConnect = { viewModel.connectToDevice(device) }
-                            )
-                        }
+                    items(uiState.bluetoothDevices) { device ->
+                        DeviceCard(
+                            device = device,
+                            isConnecting = uiState.connectingToDevice == device.id,
+                            isConnected = uiState.connectedDevice?.id == device.id,
+                            onConnect = { viewModel.connectToDevice(device) }
+                        )
                     }
                 }
 
@@ -132,18 +127,13 @@ fun ConnectionScreen(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-                    itemsIndexed(uiState.usbDevices) { index, device ->
-                        AnimatedCard(
-                            isVisible = true,
-                            delayMillis = (index + uiState.bluetoothDevices.size) * 100
-                        ) {
-                            DeviceCard(
-                                device = device,
-                                isConnecting = uiState.connectingToDevice == device.id,
-                                isConnected = uiState.connectedDevice?.id == device.id,
-                                onConnect = { viewModel.connectToDevice(device) }
-                            )
-                        }
+                    items(uiState.usbDevices) { device ->
+                        DeviceCard(
+                            device = device,
+                            isConnecting = uiState.connectingToDevice == device.id,
+                            isConnected = uiState.connectedDevice?.id == device.id,
+                            onConnect = { viewModel.connectToDevice(device) }
+                        )
                     }
                 }
 
@@ -157,18 +147,13 @@ fun ConnectionScreen(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-                    itemsIndexed(uiState.wifiDevices) { index, device ->
-                        AnimatedCard(
-                            isVisible = true,
-                            delayMillis = (index + uiState.bluetoothDevices.size + uiState.usbDevices.size) * 100
-                        ) {
-                            DeviceCard(
-                                device = device,
-                                isConnecting = uiState.connectingToDevice == device.id,
-                                isConnected = uiState.connectedDevice?.id == device.id,
-                                onConnect = { viewModel.connectToDevice(device) }
-                            )
-                        }
+                    items(uiState.wifiDevices) { device ->
+                        DeviceCard(
+                            device = device,
+                            isConnecting = uiState.connectingToDevice == device.id,
+                            isConnected = uiState.connectedDevice?.id == device.id,
+                            onConnect = { viewModel.connectToDevice(device) }
+                        )
                     }
                 }
             }

@@ -52,32 +52,32 @@ class WiFiCommService @Inject constructor(
         return try {
             CrashHandler.logInfo("Scanning for WiFi OBD devices...")
 
-            // Always show common WiFi OBD adapter configurations for demo/testing
+            // Show common WiFi OBD adapter configurations
             val wifiDevices = listOf(
                 ObdDevice(
                     id = "wifi_192_168_0_10",
-                    name = "Demo: WiFi ELM327 (192.168.0.10)",
+                    name = "WiFi ELM327 (192.168.0.10)",
                     address = "192.168.0.10:$DEFAULT_PORT",
                     type = DeviceType.WIFI,
                     isConnected = false
                 ),
                 ObdDevice(
                     id = "wifi_192_168_1_5",
-                    name = "Demo: WiFi ELM327 (192.168.1.5)",
+                    name = "WiFi ELM327 (192.168.1.5)",
                     address = "192.168.1.5:$DEFAULT_PORT",
                     type = DeviceType.WIFI,
                     isConnected = false
                 ),
                 ObdDevice(
                     id = "wifi_192_168_4_1",
-                    name = "Demo: WiFi ELM327 (192.168.4.1)",
+                    name = "WiFi ELM327 (192.168.4.1)",
                     address = "192.168.4.1:$DEFAULT_PORT",
                     type = DeviceType.WIFI,
                     isConnected = false
                 ),
                 ObdDevice(
                     id = "wifi_custom",
-                    name = "Demo: Custom WiFi Address",
+                    name = "Custom WiFi Address",
                     address = "custom",
                     type = DeviceType.WIFI,
                     isConnected = false

@@ -205,23 +205,7 @@ class CommunicationManager @Inject constructor(
             bluetoothCommService.getPairedDevices()
         } catch (e: Exception) {
             CrashHandler.handleException(e, "CommunicationManager.getAvailableBluetoothDevices")
-            // Return demo devices if real scanning fails
-            listOf(
-                ObdDevice(
-                    id = "demo_bt_1",
-                    name = "Demo: ELM327 Bluetooth (No real device)",
-                    address = "DEMO:BT:001",
-                    type = DeviceType.BLUETOOTH,
-                    isPaired = true
-                ),
-                ObdDevice(
-                    id = "demo_bt_2",
-                    name = "Demo: OBDLink MX+ (No real device)",
-                    address = "DEMO:BT:002",
-                    type = DeviceType.BLUETOOTH,
-                    isPaired = false
-                )
-            )
+            emptyList() // Return empty list instead of demo devices
         }
     }
 

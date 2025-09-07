@@ -132,7 +132,7 @@ class LiveDataViewModel @Inject constructor(
             parameter?.let {
                 // Get real data from OBD or simulate
                 val value = if (communicationManager.isConnected() && !appPreferences.demoMode) {
-                    getRealObdValue(parameterId)
+                    getRealObdValueAsync(parameterId)
                 } else {
                     generateSimulatedValue(parameterId)
                 }
@@ -167,7 +167,7 @@ class LiveDataViewModel @Inject constructor(
         )
     }
 
-    private fun getRealObdValue(parameterId: String): Float {
+    private suspend fun getRealObdValueAsync(parameterId: String): Float {
         return try {
             val pid = when (parameterId) {
                 "rpm" -> "0C"
@@ -177,19 +177,111 @@ class LiveDataViewModel @Inject constructor(
                 "throttle_pos" -> "11"
                 "fuel_level" -> "2F"
                 "intake_temp" -> "0F"
-                "battery_voltage" -> "42" // Battery voltage PID
+                "battery_voltage" -> "42"
                 else -> null
             }
 
             if (pid != null) {
-                // This would be a blocking call in real implementation
-                // For now, return simulated value as placeholder
-                generateSimulatedValue(parameterId)
+                // Make actual OBD request
+                val result = communicationManager.requestPidData(pid)
+                if (result.isSuccess) {
+                    val processedData = result.getOrNull()
+                    val value = processedData?.processedValue?.toFloat() ?: generateSimulatedValue(parameterId)
+
+                    // Log raw data for debugging
+                    val rawEntry = RawDataEntry(
+                        timestamp = System.currentTimeMillis(),
+                        command = "01$pid",
+                        rawResponse = processedData?.metadata?.rawResponse ?: "No response",
+                        decodedValue = value,
+                        processingTimeMs = processedData?.metadata?.processingTime ?: 0
+                    )
+
+                    // Add to raw data log
+                    val currentRawData = _uiState.value.rawDataLog.toMutableList()
+                    currentRawData.add(rawEntry)
+                    _uiState.value = _uiState.value.copy(
+                        rawDataLog = currentRawData.takeLast(100) // Keep last 100 entries
+                    )
+
+                    value
+                } else {
+                    generateSimulatedValue(parameterId)
+                }
             } else {
                 generateSimulatedValue(parameterId)
             }
         } catch (e: Exception) {
-            CrashHandler.handleException(e, "LiveDataViewModel.getRealObdValue")
+            CrashHandler.handleException(e, "LiveDataViewModel.getRealObdValueAsync")
+            generateSimulatedValue(parameterId)
+        }
+    }
+
+    private fun parseObdValue(obdData: com.hurtec.obd2.diagnostics.obd.elm327.ObdResponse?, parameterId: String): Float {
+        return try {
+            if (obdData == null || obdData.isError || obdData.data.isEmpty()) {
+                return generateSimulatedValue(parameterId)
+            }
+
+            val byteData = obdData.getByteData()
+            if (byteData.isEmpty()) {
+                return generateSimulatedValue(parameterId)
+            }
+
+            // Parse based on PID type
+            when (parameterId) {
+                "rpm" -> {
+                    // RPM = ((A*256)+B)/4
+                    if (byteData.size >= 2) {
+                        ((byteData[0] * 256) + byteData[1]) / 4.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                "speed" -> {
+                    // Speed = A km/h
+                    if (byteData.isNotEmpty()) {
+                        byteData[0].toFloat()
+                    } else generateSimulatedValue(parameterId)
+                }
+                "coolant_temp" -> {
+                    // Coolant temp = A - 40 (°C)
+                    if (byteData.isNotEmpty()) {
+                        byteData[0] - 40.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                "engine_load" -> {
+                    // Engine load = A * 100/255 (%)
+                    if (byteData.isNotEmpty()) {
+                        byteData[0] * 100.0f / 255.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                "throttle_pos" -> {
+                    // Throttle position = A * 100/255 (%)
+                    if (byteData.isNotEmpty()) {
+                        byteData[0] * 100.0f / 255.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                "fuel_level" -> {
+                    // Fuel level = A * 100/255 (%)
+                    if (byteData.isNotEmpty()) {
+                        byteData[0] * 100.0f / 255.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                "intake_temp" -> {
+                    // Intake air temp = A - 40 (°C)
+                    if (byteData.isNotEmpty()) {
+                        byteData[0] - 40.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                "battery_voltage" -> {
+                    // Battery voltage = ((A*256)+B)/1000 (V)
+                    if (byteData.size >= 2) {
+                        ((byteData[0] * 256) + byteData[1]) / 1000.0f
+                    } else generateSimulatedValue(parameterId)
+                }
+                else -> generateSimulatedValue(parameterId)
+            }
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "LiveDataViewModel.parseObdValue")
             generateSimulatedValue(parameterId)
         }
     }

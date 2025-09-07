@@ -73,7 +73,7 @@ class UsbCommService @Inject constructor(
             }
         } catch (e: Exception) {
             CrashHandler.handleException(e, "UsbCommService.getAvailableDevices")
-            getDemoUsbDevices()
+            emptyList() // Return empty list instead of demo devices
         }
     }
 

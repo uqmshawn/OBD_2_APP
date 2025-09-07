@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -32,23 +34,6 @@ fun DiagnosticsScreen(
     viewModel: DiagnosticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val connectionState by viewModel.connectionState.collectAsState()
-
-    // Show success message
-    if (uiState.clearSuccess) {
-        LaunchedEffect(uiState.clearSuccess) {
-            // In a real app, you'd show a snackbar here
-            viewModel.clearClearSuccess()
-        }
-    }
-
-    // Show error message
-    uiState.error?.let { error ->
-        LaunchedEffect(error) {
-            // In a real app, you'd show a snackbar here
-            viewModel.clearError()
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -59,21 +44,24 @@ fun DiagnosticsScreen(
         Text(
             text = "Vehicle Diagnostics",
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Connection status check
-        if (connectionState != ConnectionState.CONNECTED) {
-            ConnectionRequiredCard()
-            return@Column
-        }
+        Text(
+            text = "Scan and clear diagnostic trouble codes",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Action buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
                 onClick = viewModel::scanDtcs,
@@ -81,9 +69,10 @@ fun DiagnosticsScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 if (uiState.isScanning) {
-                    WaveLoadingIndicator(
+                    CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
@@ -96,9 +85,10 @@ fun DiagnosticsScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 if (uiState.isClearing) {
-                    RotatingLoadingIndicator(
+                    CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
@@ -108,80 +98,57 @@ fun DiagnosticsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // DTC Summary
-        if (uiState.dtcs.isNotEmpty()) {
-            val activeDtcs = uiState.dtcs.filter { it.status == DtcStatus.STORED }
-            val pendingDtcs = uiState.dtcs.filter { it.status == DtcStatus.PENDING }
-            val permanentDtcs = uiState.dtcs.filter { it.status == DtcStatus.PERMANENT }
-
-            DtcSummaryCard(
-                activeDtcs = activeDtcs.size,
-                pendingDtcs = pendingDtcs.size,
-                permanentDtcs = permanentDtcs.size
-            )
+        // Error message
+        uiState.error?.let { error ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // DTC List or Empty State
+        // Clear success message
+        if (uiState.clearSuccess) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Text(
+                    text = "DTCs cleared successfully!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Simple DTC List
         if (uiState.dtcs.isNotEmpty()) {
-            val activeDtcs = uiState.dtcs.filter { it.status == DtcStatus.STORED }
-            val pendingDtcs = uiState.dtcs.filter { it.status == DtcStatus.PENDING }
+            Text(
+                text = "Found ${uiState.dtcs.size} Diagnostic Trouble Codes",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Active DTCs
-                if (activeDtcs.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Active Codes (${activeDtcs.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    itemsIndexed(activeDtcs) { index, dtc ->
-                        SlideInFromBottomTransition(visible = true) {
-                            AnimatedCard(
-                                isVisible = true,
-                                delayMillis = index * 150
-                            ) {
-                                DtcCard(
-                                    dtc = dtc,
-                                    isLoadingFreezeFrame = false,
-                                    onGetFreezeFrame = { /* TODO: Get freeze frame data */ }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Pending DTCs
-                if (pendingDtcs.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Pending Codes (${pendingDtcs.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    itemsIndexed(pendingDtcs) { index, dtc ->
-                        SlideInFromBottomTransition(visible = true) {
-                            AnimatedCard(
-                                isVisible = true,
-                                delayMillis = (index + activeDtcs.size) * 150
-                            ) {
-                                DtcCard(
-                                    dtc = dtc,
-                                    isLoadingFreezeFrame = false,
-                                    onGetFreezeFrame = { /* TODO: Get freeze frame data */ }
-                                )
-                            }
-                        }
-                    }
+                items(uiState.dtcs) { dtc ->
+                    SimpleDtcCard(dtc = dtc)
                 }
             }
         } else if (!uiState.isScanning) {
@@ -195,7 +162,7 @@ fun DiagnosticsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -208,15 +175,19 @@ fun DiagnosticsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "No Diagnostic Trouble Codes",
+                        text = "No DTCs Found",
                         style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
-                        text = "Your vehicle's systems are operating normally",
+                        text = "Your vehicle has no diagnostic trouble codes. Click 'Scan DTCs' to check for new codes.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }
@@ -325,194 +296,11 @@ private fun DtcSummaryItem(
     }
 }
 
-@Composable
-private fun DtcCard(
-    dtc: DtcInfo,
-    isLoadingFreezeFrame: Boolean,
-    onGetFreezeFrame: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (dtc.status) {
-                DtcStatus.STORED -> MaterialTheme.colorScheme.errorContainer
-                DtcStatus.PENDING -> MaterialTheme.colorScheme.tertiaryContainer
-                DtcStatus.PERMANENT -> MaterialTheme.colorScheme.secondaryContainer
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = dtc.code,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
 
-                    Text(
-                        text = getDtcDescription(dtc.code),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
 
-                    Text(
-                        text = dtc.status.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when (dtc.status) {
-                            DtcStatus.STORED -> MaterialTheme.colorScheme.error
-                            DtcStatus.PENDING -> MaterialTheme.colorScheme.tertiary
-                            DtcStatus.PERMANENT -> MaterialTheme.colorScheme.secondary
-                        }
-                    )
-                }
 
-                OutlinedButton(
-                    onClick = onGetFreezeFrame,
-                    enabled = !isLoadingFreezeFrame,
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    if (isLoadingFreezeFrame) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("Freeze Frame")
-                    }
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun FreezeFrameDialog(
-    dtcCode: String,
-    freezeFrameData: Map<String, String>,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Freeze Frame Data - $dtcCode")
-        },
-        text = {
-            LazyColumn {
-                items(freezeFrameData.entries.toList()) { (parameter, value) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = parameter,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = value,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
-        }
-    )
-}
 
-@Composable
-private fun ReadinessMonitorsCard(
-    monitors: Map<String, ReadinessStatus>
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Readiness Monitors",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            monitors.entries.forEach { (monitor, status) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = monitor,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = when (status) {
-                                ReadinessStatus.READY -> Icons.Default.CheckCircle
-                                ReadinessStatus.NOT_READY -> Icons.Default.Warning
-                                ReadinessStatus.NOT_APPLICABLE -> Icons.Default.Remove
-                            },
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = when (status) {
-                                ReadinessStatus.READY -> MaterialTheme.colorScheme.primary
-                                ReadinessStatus.NOT_READY -> MaterialTheme.colorScheme.error
-                                ReadinessStatus.NOT_APPLICABLE -> MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = when (status) {
-                                ReadinessStatus.READY -> "Ready"
-                                ReadinessStatus.NOT_READY -> "Not Ready"
-                                ReadinessStatus.NOT_APPLICABLE -> "N/A"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = when (status) {
-                                ReadinessStatus.READY -> MaterialTheme.colorScheme.primary
-                                ReadinessStatus.NOT_READY -> MaterialTheme.colorScheme.error
-                                ReadinessStatus.NOT_APPLICABLE -> MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 private fun getDtcDescription(code: String): String {
     return when (code) {
@@ -524,5 +312,58 @@ private fun getDtcDescription(code: String): String {
         "P0506" -> "Idle Control System RPM Lower Than Expected"
         "P0507" -> "Idle Control System RPM Higher Than Expected"
         else -> "Unknown diagnostic trouble code"
+    }
+}
+
+@Composable
+private fun SimpleDtcCard(dtc: DtcInfo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = when (dtc.status) {
+                DtcStatus.STORED -> MaterialTheme.colorScheme.errorContainer
+                DtcStatus.PENDING -> MaterialTheme.colorScheme.tertiaryContainer
+                DtcStatus.PERMANENT -> MaterialTheme.colorScheme.secondaryContainer
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = dtc.code,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = when (dtc.status) {
+                    DtcStatus.STORED -> MaterialTheme.colorScheme.onErrorContainer
+                    DtcStatus.PENDING -> MaterialTheme.colorScheme.onTertiaryContainer
+                    DtcStatus.PERMANENT -> MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
+
+            val description = dtc.description ?: getDtcDescription(dtc.code)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = when (dtc.status) {
+                    DtcStatus.STORED -> MaterialTheme.colorScheme.onErrorContainer
+                    DtcStatus.PENDING -> MaterialTheme.colorScheme.onTertiaryContainer
+                    DtcStatus.PERMANENT -> MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Status: ${dtc.status.name}",
+                style = MaterialTheme.typography.labelSmall,
+                color = when (dtc.status) {
+                    DtcStatus.STORED -> MaterialTheme.colorScheme.onErrorContainer
+                    DtcStatus.PENDING -> MaterialTheme.colorScheme.onTertiaryContainer
+                    DtcStatus.PERMANENT -> MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
+        }
     }
 }

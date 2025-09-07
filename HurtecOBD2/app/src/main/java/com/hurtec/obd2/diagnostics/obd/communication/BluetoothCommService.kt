@@ -59,27 +59,29 @@ class BluetoothCommService @Inject constructor(
 
         return try {
             val realDevices = bluetoothAdapter?.bondedDevices?.mapNotNull { device ->
-                // Show all paired devices, not just OBD ones
-                ObdDevice(
-                    id = device.address,
-                    name = device.name ?: "Unknown Device",
-                    address = device.address,
-                    type = DeviceType.BLUETOOTH,
-                    isConnected = false
-                )
+                try {
+                    // Show all paired devices, not just OBD ones
+                    ObdDevice(
+                        id = device.address,
+                        name = device.name ?: "Unknown Bluetooth Device",
+                        address = device.address,
+                        type = DeviceType.BLUETOOTH,
+                        isConnected = false
+                    )
+                } catch (e: SecurityException) {
+                    // Skip devices we can't access
+                    null
+                }
             } ?: emptyList()
 
-            // If no real devices found, show demo devices
-            if (realDevices.isEmpty()) {
-                CrashHandler.logInfo("No real Bluetooth devices found - showing demo devices")
-                getDemoBluetoothDevices()
-            } else {
-                CrashHandler.logInfo("Found ${realDevices.size} real Bluetooth devices")
-                realDevices
-            }
+            CrashHandler.logInfo("Found ${realDevices.size} real Bluetooth devices")
+            realDevices
         } catch (e: SecurityException) {
+            CrashHandler.handleException(e, "BluetoothCommService.getPairedDevices - No Bluetooth permission")
+            emptyList() // Return empty list instead of demo devices
+        } catch (e: Exception) {
             CrashHandler.handleException(e, "BluetoothCommService.getPairedDevices")
-            getDemoBluetoothDevices()
+            emptyList() // Return empty list instead of demo devices
         }
     }
 
