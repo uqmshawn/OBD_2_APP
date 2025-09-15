@@ -5,6 +5,7 @@ import com.hurtec.obd2.diagnostics.obd.communication.BluetoothCommService
 import com.hurtec.obd2.diagnostics.obd.communication.CommunicationManager
 import com.hurtec.obd2.diagnostics.obd.communication.UsbCommService
 import com.hurtec.obd2.diagnostics.obd.communication.WiFiCommService
+import com.hurtec.obd2.diagnostics.obd.androbd.AndrObdCommService
 import com.hurtec.obd2.diagnostics.obd.elm327.ELM327ProtocolHandler
 import com.hurtec.obd2.diagnostics.ui.navigation.NavigationManager
 import com.hurtec.obd2.diagnostics.utils.PermissionManager
@@ -19,6 +20,7 @@ import com.hurtec.obd2.diagnostics.obd.data.DataValidator
 import com.hurtec.obd2.diagnostics.database.HurtecObdDatabase
 import com.hurtec.obd2.diagnostics.database.repository.VehicleRepository
 import com.hurtec.obd2.diagnostics.database.repository.ObdDataRepository
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,6 +39,18 @@ object ObdModule {
     @Singleton
     fun provideELM327ProtocolHandler(): ELM327ProtocolHandler {
         return ELM327ProtocolHandler()
+    }
+
+    @Provides
+    @Singleton
+    fun providePermissionManager(@ApplicationContext context: Context): PermissionManager {
+        return PermissionManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAppPreferences(@ApplicationContext context: Context): AppPreferences {
+        return AppPreferences(context)
     }
 
     @Provides
@@ -116,9 +130,10 @@ object ObdModule {
     fun provideDataProcessor(
         pidInterpreter: PidInterpreter,
         unitConverter: UnitConverter,
-        dataValidator: DataValidator
+        dataValidator: DataValidator,
+        obdDataRepository: ObdDataRepository
     ): DataProcessor {
-        return DataProcessor(pidInterpreter, unitConverter, dataValidator)
+        return DataProcessor(pidInterpreter, unitConverter, dataValidator, obdDataRepository)
     }
 
     @Provides
@@ -137,5 +152,23 @@ object ObdModule {
     @Singleton
     fun provideObdDataRepository(database: HurtecObdDatabase): ObdDataRepository {
         return ObdDataRepository(database)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCommunicationManager(
+        bluetoothCommService: BluetoothCommService,
+        usbCommService: UsbCommService,
+        wifiCommService: WiFiCommService,
+        commandQueue: CommandQueue,
+        dataProcessor: DataProcessor
+    ): CommunicationManager {
+        return CommunicationManager(
+            bluetoothCommService,
+            usbCommService,
+            wifiCommService,
+            commandQueue,
+            dataProcessor
+        )
     }
 }

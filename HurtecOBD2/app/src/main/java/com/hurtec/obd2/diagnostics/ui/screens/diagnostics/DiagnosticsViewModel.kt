@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.hurtec.obd2.diagnostics.obd.communication.CommunicationManager
 import com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo
 import com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
 import com.hurtec.obd2.diagnostics.utils.CrashHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -16,10 +17,15 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class DiagnosticsViewModel @Inject constructor(
-    private val communicationManager: CommunicationManager
+    private val communicationManager: CommunicationManager,
+    private val appPreferences: AppPreferences
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DiagnosticsUiState())
+    private val _uiState = MutableStateFlow(DiagnosticsUiState(
+        isLoading = false,
+        dtcs = emptyList(), // Start with empty list to prevent crashes
+        error = null
+    ))
     val uiState: StateFlow<DiagnosticsUiState> = _uiState.asStateFlow()
 
     val connectionState = communicationManager.connectionState
@@ -34,21 +40,37 @@ class DiagnosticsViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-                // Simulate DTC reading
-                kotlinx.coroutines.delay(2000)
+                if (communicationManager.isConnected()) {
+                    CrashHandler.logInfo("Reading real DTCs from vehicle using AndrOBD...")
 
-                // Generate sample DTCs for demonstration
-                val sampleDtcs = listOf(
-                    DtcInfo(code = "P0171", status = DtcStatus.STORED),
-                    DtcInfo(code = "P0300", status = DtcStatus.PENDING),
-                    DtcInfo(code = "P0420", status = DtcStatus.STORED)
-                )
+                    // Use real AndrOBD DTC reading
+                    val dtcResult = communicationManager.readDtcs()
 
-                _uiState.value = _uiState.value.copy(
-                    dtcs = sampleDtcs,
-                    isLoading = false,
-                    lastScanTime = System.currentTimeMillis()
-                )
+                    if (dtcResult.isSuccess) {
+                        val realDtcs = dtcResult.getOrNull() ?: emptyList()
+                        CrashHandler.logInfo("Successfully read ${realDtcs.size} DTCs from vehicle")
+
+                        _uiState.value = _uiState.value.copy(
+                            dtcs = realDtcs,
+                            isLoading = false,
+                            lastScanTime = System.currentTimeMillis()
+                        )
+                    } else {
+                        val error = dtcResult.exceptionOrNull()?.message ?: "Unknown error"
+                        CrashHandler.logError("Failed to read DTCs: $error")
+
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "Error reading DTCs: $error"
+                        )
+                    }
+                } else {
+                    CrashHandler.logWarning("Cannot read DTCs: not connected to OBD device")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Not connected to OBD device. Please connect first."
+                    )
+                }
             } catch (e: Exception) {
                 CrashHandler.handleException(e, "DiagnosticsViewModel.loadDtcs")
                 _uiState.value = _uiState.value.copy(

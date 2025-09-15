@@ -1,6 +1,8 @@
 package com.hurtec.obd2.diagnostics.obd.data
 
 import com.hurtec.obd2.diagnostics.utils.CrashHandler
+import com.hurtec.obd2.diagnostics.database.repository.ObdDataRepository
+import com.hurtec.obd2.diagnostics.database.entities.ObdDataEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -15,7 +17,8 @@ import javax.inject.Singleton
 class DataProcessor @Inject constructor(
     private val pidInterpreter: PidInterpreter,
     private val unitConverter: UnitConverter,
-    private val dataValidator: DataValidator
+    private val dataValidator: DataValidator,
+    private val obdDataRepository: ObdDataRepository
 ) {
     
     // Data streams
@@ -98,21 +101,17 @@ class DataProcessor @Inject constructor(
             bufferData(processedData)
             
             // Store to database if enabled and session/vehicle are set
-            // TODO: Re-enable database storage when Room is working
-            /*
             if (persistDataToDatabase && currentSessionId != null && currentVehicleId != null) {
                 try {
-                    obdDataRepository.storeObdData(
-                        vehicleId = currentVehicleId!!,
-                        sessionId = currentSessionId!!,
-                        processedData = processedData
-                    )
+                    // Create ObdDataEntity from processed data
+                    val obdDataEntity = createObdDataEntity(processedData, currentVehicleId!!, currentSessionId!!)
+                    obdDataRepository.storeObdData(obdDataEntity)
+                    CrashHandler.logInfo("Stored OBD data to database for session $currentSessionId")
                 } catch (e: Exception) {
                     CrashHandler.handleException(e, "DataProcessor.storeToDatabase")
                     // Don't fail the processing if database storage fails
                 }
             }
-            */
 
             // Emit the processed data
             _processedData.emit(processedData)
@@ -349,16 +348,86 @@ class DataProcessor @Inject constructor(
         sessionId: String,
         processedDataList: List<ProcessedObdData>
     ): Result<List<Long>> {
-        // TODO: Re-enable when Room is working
-        return Result.failure(Exception("Database not available"))
-        /*
         return try {
-            obdDataRepository.storeObdDataBatch(vehicleId, sessionId, processedDataList)
+            // Convert ProcessedObdData to ObdDataEntity
+            val obdDataEntities = processedDataList.map { processedData ->
+                createObdDataEntity(processedData, vehicleId, sessionId)
+            }
+
+            val result = obdDataRepository.storeObdDataBatch(obdDataEntities)
+            CrashHandler.logInfo("Stored batch of ${processedDataList.size} OBD data entries to database")
+            result
         } catch (e: Exception) {
             CrashHandler.handleException(e, "DataProcessor.storeBatchToDatabase")
             Result.failure(e)
         }
-        */
+    }
+
+    /**
+     * Start a new data recording session
+     */
+    fun startSession(sessionId: String, vehicleId: Long) {
+        currentSessionId = sessionId
+        currentVehicleId = vehicleId
+        CrashHandler.logInfo("Started data recording session: $sessionId for vehicle: $vehicleId")
+    }
+
+    /**
+     * Stop the current data recording session
+     */
+    fun stopSession() {
+        currentSessionId = null
+        currentVehicleId = null
+        CrashHandler.logInfo("Stopped data recording session")
+    }
+
+    /**
+     * Create ObdDataEntity from ProcessedObdData
+     */
+    private fun createObdDataEntity(
+        processedData: ProcessedObdData,
+        vehicleId: Long,
+        sessionId: String
+    ): ObdDataEntity {
+        val pid = processedData.metadata.command.substring(2) // Remove "01" prefix
+        val pidName = getPidName(pid)
+
+        return ObdDataEntity(
+            vehicleId = vehicleId,
+            sessionId = sessionId,
+            pid = pid,
+            pidName = pidName,
+            rawValue = processedData.rawValue, // Already a Double?
+            processedValue = processedData.processedValue, // Already a Double?
+            stringValue = processedData.stringValue,
+            formattedValue = processedData.formattedValue,
+            unit = processedData.unit,
+            unitSystem = processedData.unitSystem.name,
+            quality = processedData.quality.name,
+            timestamp = processedData.timestamp,
+            rawResponse = processedData.metadata.rawResponse,
+            command = processedData.metadata.command,
+            processingTimeMs = processedData.metadata.processingTime,
+            dataBytes = processedData.metadata.dataBytes.joinToString(" ") { it.toString(16).uppercase().padStart(2, '0') },
+            isValid = processedData.isValid
+        )
+    }
+
+    /**
+     * Get PID name from PID code
+     */
+    private fun getPidName(pid: String): String {
+        return when (pid.uppercase()) {
+            "0C" -> "Engine RPM"
+            "0D" -> "Vehicle Speed"
+            "05" -> "Engine Coolant Temperature"
+            "04" -> "Calculated Engine Load"
+            "11" -> "Throttle Position"
+            "2F" -> "Fuel Tank Level Input"
+            "0F" -> "Intake Air Temperature"
+            "42" -> "Control Module Voltage"
+            else -> "PID $pid"
+        }
     }
 }
 

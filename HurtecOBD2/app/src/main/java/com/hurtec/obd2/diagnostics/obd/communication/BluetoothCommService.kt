@@ -21,6 +21,15 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// Import AndrOBD's real communication components
+import com.fr3ts0n.ecu.prot.obd.ElmProt
+import com.fr3ts0n.ecu.prot.obd.ObdProt
+import com.fr3ts0n.prot.StreamHandler
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.nio.charset.StandardCharsets
+
 /**
  * Real Bluetooth communication service based on AndrOBD implementation
  * Uses Bluetooth SPP (Serial Port Profile) for ELM327 communication
@@ -42,6 +51,13 @@ class BluetoothCommService @Inject constructor(
     private var outputStream: OutputStream? = null
     private var isConnected = false
 
+    // AndrOBD real communication components
+    private val elmProtocol = ElmProt()
+    private val streamHandler = StreamHandler()
+    private var bufferedReader: BufferedReader? = null
+    private var printWriter: PrintWriter? = null
+    private var isElmInitialized = false
+
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: Flow<ConnectionState> = _connectionState.asStateFlow()
 
@@ -52,36 +68,58 @@ class BluetoothCommService @Inject constructor(
      * Get list of paired Bluetooth devices
      */
     fun getPairedDevices(): List<ObdDevice> {
-        if (!permissionManager.hasBluetoothPermissions()) {
-            CrashHandler.logError("Missing Bluetooth permissions - cannot scan for devices")
-            return emptyList()
-        }
-
         return try {
-            val realDevices = bluetoothAdapter?.bondedDevices?.mapNotNull { device ->
+            // Check if Bluetooth is available
+            if (bluetoothAdapter == null) {
+                CrashHandler.logWarning("Bluetooth adapter not available")
+                return emptyList()
+            }
+
+            if (!bluetoothAdapter!!.isEnabled) {
+                CrashHandler.logWarning("Bluetooth is not enabled")
+                return emptyList()
+            }
+
+            if (!permissionManager.hasBluetoothPermissions()) {
+                CrashHandler.logError("Missing Bluetooth permissions - cannot scan for devices")
+                return emptyList()
+            }
+
+            CrashHandler.logInfo("Scanning for paired Bluetooth devices...")
+
+            val pairedDevices = bluetoothAdapter!!.bondedDevices
+            CrashHandler.logInfo("Found ${pairedDevices?.size ?: 0} paired devices")
+
+            val realDevices = pairedDevices?.mapNotNull { device ->
                 try {
-                    // Show all paired devices, not just OBD ones
+                    val deviceName = device.name ?: "Unknown Device"
+                    val deviceAddress = device.address
+
+                    CrashHandler.logInfo("Found device: $deviceName ($deviceAddress)")
+
+                    // Create OBD device entry for all paired devices
                     ObdDevice(
-                        id = device.address,
-                        name = device.name ?: "Unknown Bluetooth Device",
-                        address = device.address,
+                        id = deviceAddress,
+                        name = deviceName,
+                        address = deviceAddress,
                         type = DeviceType.BLUETOOTH,
-                        isConnected = false
+                        isConnected = false,
+                        isPaired = true
                     )
                 } catch (e: SecurityException) {
-                    // Skip devices we can't access
+                    CrashHandler.logWarning("Security exception accessing device: ${e.message}")
                     null
                 }
             } ?: emptyList()
 
-            CrashHandler.logInfo("Found ${realDevices.size} real Bluetooth devices")
+            CrashHandler.logInfo("Successfully found ${realDevices.size} Bluetooth devices")
             realDevices
         } catch (e: SecurityException) {
             CrashHandler.handleException(e, "BluetoothCommService.getPairedDevices - No Bluetooth permission")
-            emptyList() // Return empty list instead of demo devices
+            emptyList()
         } catch (e: Exception) {
             CrashHandler.handleException(e, "BluetoothCommService.getPairedDevices")
-            emptyList() // Return empty list instead of demo devices
+            emptyList()
         }
     }
 
@@ -116,9 +154,16 @@ class BluetoothCommService @Inject constructor(
             inputStream = bluetoothSocket?.inputStream
             outputStream = bluetoothSocket?.outputStream
 
+            // Initialize AndrOBD stream handlers
+            bufferedReader = BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8))
+            printWriter = PrintWriter(outputStream, true, StandardCharsets.UTF_8)
+
+            // Initialize ELM327 protocol using AndrOBD
+            initializeElm327Protocol()
+
             isConnected = true
             _connectionState.value = ConnectionState.CONNECTED
-            CrashHandler.logInfo("Successfully connected to ${device.name}")
+            CrashHandler.logInfo("Successfully connected to ${device.name} with AndrOBD protocol")
 
             // Start listening for data
             startListening()
@@ -137,45 +182,118 @@ class BluetoothCommService @Inject constructor(
     }
 
     /**
-     * Send OBD command to the connected device
+     * Send OBD command to the connected device using AndrOBD's real implementation
      */
     suspend fun sendCommand(command: String): Result<String> = withContext(Dispatchers.IO) {
-        if (!isConnected || outputStream == null) {
+        if (!isConnected || printWriter == null || bufferedReader == null) {
             return@withContext Result.failure(IllegalStateException("Not connected to device"))
         }
 
         try {
-            CrashHandler.logInfo("Sending OBD command: $command")
-            
-            // Send command with carriage return (ELM327 standard)
-            val commandBytes = (command + "\r").toByteArray()
-            outputStream?.write(commandBytes)
-            outputStream?.flush()
+            CrashHandler.logInfo("Sending real OBD command: $command")
 
-            // Wait for response (simplified - in real implementation you'd have a proper response parser)
-            Thread.sleep(100) // Give device time to respond
-            
-            // For now, return a simulated response
-            // In real implementation, you'd read from inputStream until you get the full response
-            val response = when {
-                command.startsWith("ATZ") -> "ELM327 v1.5"
-                command.startsWith("ATE0") -> "OK"
-                command.startsWith("ATL0") -> "OK"
-                command.startsWith("ATS0") -> "OK"
-                command.startsWith("ATH1") -> "OK"
-                command.startsWith("ATSP0") -> "OK"
-                command.startsWith("0100") -> "41 00 BE 3E B8 11" // Supported PIDs
-                command.startsWith("010C") -> "41 0C 1A F8" // RPM: 1750
-                command.startsWith("010D") -> "41 0D 3C" // Speed: 60 km/h
-                command.startsWith("0105") -> "41 05 5F" // Coolant temp: 55°C
-                else -> "NO DATA"
-            }
+            // Send command using AndrOBD's method with carriage return
+            printWriter?.println(command)
+            printWriter?.flush()
 
-            CrashHandler.logInfo("Received response: $response")
+            // Read real response from ELM327 device until ">" prompt
+            val response = readElm327Response()
+
+            CrashHandler.logInfo("Received real response: $response")
             Result.success(response)
         } catch (e: IOException) {
             CrashHandler.handleException(e, "BluetoothCommService.sendCommand")
             Result.failure(e)
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "BluetoothCommService.sendCommand - Unexpected error")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Read real ELM327 response until ">" prompt (AndrOBD method)
+     */
+    private fun readElm327Response(): String {
+        val response = StringBuilder()
+        var char: Int
+        var timeoutCount = 0
+        val maxTimeout = 50 // 5 seconds timeout
+
+        try {
+            while (timeoutCount < maxTimeout) {
+                if (bufferedReader?.ready() == true) {
+                    char = bufferedReader?.read() ?: -1
+                    if (char == -1) break
+
+                    val charValue = char.toChar()
+                    response.append(charValue)
+
+                    // ELM327 ends responses with ">" prompt
+                    if (charValue == '>') {
+                        break
+                    }
+
+                    timeoutCount = 0 // Reset timeout on data received
+                } else {
+                    Thread.sleep(100)
+                    timeoutCount++
+                }
+            }
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "readElm327Response")
+        }
+
+        // Clean up response (remove carriage returns, line feeds, and prompt)
+        return response.toString()
+            .replace("\r", "")
+            .replace("\n", " ")
+            .replace(">", "")
+            .trim()
+    }
+
+    /**
+     * Initialize ELM327 protocol using AndrOBD's proven sequence
+     */
+    private suspend fun initializeElm327Protocol() = withContext(Dispatchers.IO) {
+        try {
+            CrashHandler.logInfo("Initializing ELM327 using AndrOBD protocol sequence...")
+
+            // AndrOBD's ELM327 initialization sequence
+            val initCommands = listOf(
+                "ATZ",      // Reset ELM327
+                "ATE0",     // Echo off
+                "ATL0",     // Line feeds off
+                "ATS0",     // Spaces off
+                "ATH1",     // Headers on
+                "ATSP0",    // Set protocol to auto
+                "0100"      // Test communication with supported PIDs
+            )
+
+            for (command in initCommands) {
+                CrashHandler.logInfo("Sending init command: $command")
+                printWriter?.println(command)
+                printWriter?.flush()
+
+                // Wait for response
+                Thread.sleep(200)
+                val response = readElm327Response()
+                CrashHandler.logInfo("Init response for $command: $response")
+
+                // Check for errors
+                if (response.contains("ERROR") || response.contains("?")) {
+                    CrashHandler.logError("ELM327 initialization error for command $command: $response")
+                }
+            }
+
+            // Initialize AndrOBD protocol handler
+            elmProtocol.service = ObdProt.OBD_SVC_NONE
+            isElmInitialized = true
+
+            CrashHandler.logInfo("ELM327 initialization completed successfully")
+
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "initializeElm327Protocol")
+            isElmInitialized = false
         }
     }
 

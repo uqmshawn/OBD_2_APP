@@ -5,5 +5,7 @@ pluginManagement {
         maven { url 'https://jitpack.io' }
     }
 }
-include ':androbd', ':library', ':plugin'
+// Exclude AndrOBD to avoid conflicts with HurtecOBD2
+// include ':androbd', ':library', ':plugin'
+include ':library', ':plugin'
 

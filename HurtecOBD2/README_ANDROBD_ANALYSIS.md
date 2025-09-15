@@ -165,10 +165,7 @@ Structure:
 ## 🌐 **INTERNATIONALIZATION**
 
 ### **Multi-language Support (20+ Languages)**
-- English, German, French, Spanish, Italian
-- Portuguese, Russian, Chinese, Japanese, Korean
-- Dutch, Polish, Czech, Hungarian, Turkish
-- Arabic, Hebrew, Thai, Vietnamese, Indonesian
+- English
 
 ### **Translation System**
 - **Weblate.org Integration**: Community translations

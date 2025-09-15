@@ -31,34 +31,30 @@ class MainViewModel @Inject constructor(
     /**
      * Check app state and determine start destination
      */
-    private fun checkAppState() {
+    fun checkAppState() {
         viewModelScope.launch {
             try {
+                CrashHandler.logInfo("MainViewModel: Starting app state check...")
+
                 val isFirstLaunch = appPreferences.isFirstLaunch
                 val isOnboardingCompleted = appPreferences.isOnboardingCompleted
-                val hasActiveVehicle = appPreferences.activeVehicleId != -1L
 
-                // Check if we have any vehicles in database
-                val vehicleCount = try {
-                    val result = vehicleRepository.getVehicleCount()
-                    result.getOrNull() ?: 0
-                } catch (e: Exception) {
-                    0
-                }
+                CrashHandler.logInfo("MainViewModel: First launch: $isFirstLaunch, Onboarding completed: $isOnboardingCompleted")
 
+                // Simplified logic to avoid database issues
                 val startDestination = when {
-                    isFirstLaunch -> "welcome"
-                    !isOnboardingCompleted -> "onboarding"
-                    vehicleCount == 0 -> "vehicle_setup"
-                    !hasActiveVehicle && vehicleCount > 0 -> {
-                        // Set first vehicle as active if none is set
-                        val vehicles = vehicleRepository.getAllVehicles().getOrNull()
-                        if (!vehicles.isNullOrEmpty()) {
-                            setActiveVehicle(vehicles.first().id)
-                        }
+                    isFirstLaunch -> {
+                        CrashHandler.logInfo("MainViewModel: First launch detected, going to welcome")
+                        "welcome"
+                    }
+                    !isOnboardingCompleted -> {
+                        CrashHandler.logInfo("MainViewModel: Onboarding not completed, going to onboarding")
+                        "onboarding"
+                    }
+                    else -> {
+                        CrashHandler.logInfo("MainViewModel: App setup complete, going to dashboard")
                         "dashboard"
                     }
-                    else -> "dashboard"
                 }
 
                 _uiState.value = _uiState.value.copy(
@@ -70,9 +66,12 @@ class MainViewModel @Inject constructor(
                     unitSystem = appPreferences.unitSystem
                 )
 
-                CrashHandler.logInfo("App start destination: $startDestination (vehicles: $vehicleCount, active: ${appPreferences.activeVehicleId})")
+                CrashHandler.logInfo("MainViewModel: App start destination set to: $startDestination")
             } catch (e: Exception) {
                 CrashHandler.handleException(e, "MainViewModel.checkAppState")
+                CrashHandler.logError("MainViewModel: Error in checkAppState, defaulting to welcome screen")
+
+                // Always default to welcome on error
                 _uiState.value = _uiState.value.copy(
                     startDestination = "welcome",
                     isLoading = false
@@ -87,6 +86,27 @@ class MainViewModel @Inject constructor(
     fun completeOnboarding() {
         appPreferences.isOnboardingCompleted = true
         CrashHandler.logInfo("Onboarding completed")
+    }
+
+    /**
+     * Skip welcome and onboarding - go directly to dashboard
+     */
+    fun skipToMain() {
+        try {
+            CrashHandler.logInfo("MainViewModel: Skipping to main dashboard")
+            appPreferences.isFirstLaunch = false
+            appPreferences.isOnboardingCompleted = true
+
+            // Update UI state to show dashboard
+            _uiState.value = _uiState.value.copy(
+                startDestination = "dashboard",
+                isLoading = false
+            )
+
+            CrashHandler.logInfo("MainViewModel: Skip to main completed successfully")
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "MainViewModel.skipToMain")
+        }
     }
     
     /**

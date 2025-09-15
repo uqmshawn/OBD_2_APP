@@ -79,6 +79,9 @@ android {
 }
 
 dependencies {
+    // AndrOBD Library - CRITICAL: This contains all the real OBD protocol implementation
+    implementation project(':library')
+
     // Core Android & Kotlin
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'

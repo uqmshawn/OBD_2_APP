@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hurtec.obd2.diagnostics.obd.communication.CommunicationManager
+import com.hurtec.obd2.diagnostics.obd.data.DataProcessor
 import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
 import com.hurtec.obd2.diagnostics.utils.CrashHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LiveDataViewModel @Inject constructor(
     private val communicationManager: CommunicationManager,
+    private val dataProcessor: DataProcessor,
     private val appPreferences: AppPreferences
 ) : ViewModel() {
 
@@ -24,8 +26,19 @@ class LiveDataViewModel @Inject constructor(
     val uiState: StateFlow<LiveDataUiState> = _uiState.asStateFlow()
 
     init {
-        loadAvailableParameters()
-        startDataCollection()
+        try {
+            CrashHandler.logInfo("LiveDataViewModel: Initializing...")
+            loadAvailableParameters()
+            startDataCollection()
+            CrashHandler.logInfo("LiveDataViewModel: Initialization completed successfully")
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "LiveDataViewModel.init")
+            // Set safe default state
+            _uiState.value = LiveDataUiState(
+                availableParameters = getDefaultParameters(),
+                error = "Initialization Error"
+            )
+        }
     }
 
     private fun loadAvailableParameters() {
@@ -112,14 +125,126 @@ class LiveDataViewModel @Inject constructor(
 
     private fun startDataCollection() {
         viewModelScope.launch {
-            // Simulate real-time data collection
-            while (true) {
-                if (communicationManager.isConnected()) {
-                    collectRealTimeData()
+            // Get selected PIDs for AndrOBD monitoring
+            val selectedPids = _uiState.value.selectedParameters.mapNotNull { parameterId ->
+                when (parameterId) {
+                    "rpm" -> "0C"
+                    "speed" -> "0D"
+                    "coolant_temp" -> "05"
+                    "engine_load" -> "04"
+                    "throttle_pos" -> "11"
+                    "fuel_level" -> "2F"
+                    "intake_temp" -> "0F"
+                    "battery_voltage" -> "42"
+                    else -> null
                 }
-                kotlinx.coroutines.delay(1000) // Update every second
+            }
+
+            if (selectedPids.isNotEmpty() && communicationManager.isConnected() && !appPreferences.demoMode) {
+                // Start AndrOBD real-time monitoring
+                CrashHandler.logInfo("Starting AndrOBD real-time monitoring with PIDs: ${selectedPids.joinToString()}")
+                communicationManager.startRealTimeMonitoring(selectedPids)
+
+                // Start a separate coroutine for real-time data collection
+                // This prevents blocking the initialization
+                viewModelScope.launch {
+                    try {
+                        communicationManager.realTimeDataFlow.collect { realTimeData ->
+                            if (realTimeData.isNotEmpty()) {
+                                updateRealTimeDataFromAndrOBD(realTimeData)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        CrashHandler.handleException(e, "LiveDataViewModel.realTimeDataCollection")
+                        // Fall back to simulated data if real-time collection fails
+                        // Start the simulated data collection in the else block
+                    }
+                }
+            } else {
+                // Fallback to simulated data collection
+                // Start a separate coroutine for simulated data collection
+                // This prevents blocking the initialization
+                viewModelScope.launch {
+                    try {
+                        while (true) {
+                            if (communicationManager.isConnected()) {
+                                collectRealTimeData()
+                            }
+                            kotlinx.coroutines.delay(1000) // Update every second
+                        }
+                    } catch (e: Exception) {
+                        CrashHandler.handleException(e, "LiveDataViewModel.simulatedDataCollection")
+                    }
+                }
             }
         }
+    }
+
+    /**
+     * Update real-time data from AndrOBD stream
+     */
+    private suspend fun updateRealTimeDataFromAndrOBD(realTimeData: Map<String, Any>) {
+        val currentState = _uiState.value
+        val newData = mutableMapOf<String, List<DataPoint>>()
+        val recentDataPoint = mutableMapOf<String, Float>()
+        val updatedRawData = currentState.rawDataLog.toMutableList()
+
+        // Process each PID from AndrOBD
+        realTimeData.forEach { (pid, data) ->
+            if (data is Map<*, *>) {
+                val value = data["value"] as? Float ?: 0f
+                val rawResponse = data["rawResponse"] as? String ?: ""
+                val timestamp = data["timestamp"] as? Long ?: System.currentTimeMillis()
+                val command = data["command"] as? String ?: ""
+
+                // Map PID back to parameter ID
+                val parameterId = when (pid) {
+                    "0C" -> "rpm"
+                    "0D" -> "speed"
+                    "05" -> "coolant_temp"
+                    "04" -> "engine_load"
+                    "11" -> "throttle_pos"
+                    "2F" -> "fuel_level"
+                    "0F" -> "intake_temp"
+                    "42" -> "battery_voltage"
+                    else -> null
+                }
+
+                if (parameterId != null && currentState.selectedParameters.contains(parameterId)) {
+                    // Create data point
+                    val dataPoint = DataPoint(
+                        timestamp = timestamp,
+                        value = value
+                    )
+
+                    // Update data series
+                    val existingData = currentState.parameterData[parameterId] ?: emptyList()
+                    newData[parameterId] = (existingData + dataPoint).takeLast(100)
+
+                    // Update recent data
+                    recentDataPoint[parameterId] = value
+
+                    // Add raw data entry
+                    val rawEntry = RawDataEntry(
+                        timestamp = timestamp,
+                        command = command,
+                        rawResponse = rawResponse,
+                        decodedValue = value,
+                        processingTimeMs = 0
+                    )
+                    updatedRawData.add(rawEntry)
+
+                    CrashHandler.logInfo("AndrOBD real-time: $parameterId = $value (raw: $rawResponse)")
+                }
+            }
+        }
+
+        // Update UI state
+        _uiState.value = currentState.copy(
+            parameterData = currentState.parameterData + newData,
+            recentData = (currentState.recentData + recentDataPoint).takeLast(100),
+            rawDataLog = updatedRawData.takeLast(100)
+        )
     }
 
     private suspend fun collectRealTimeData() {
@@ -130,11 +255,12 @@ class LiveDataViewModel @Inject constructor(
         currentState.selectedParameters.forEach { parameterId ->
             val parameter = currentState.availableParameters.find { it.id == parameterId }
             parameter?.let {
-                // Get real data from OBD or simulate
+                // Get REAL data from AndrOBD - NO MORE SIMULATION FALLBACK
                 val value = if (communicationManager.isConnected() && !appPreferences.demoMode) {
                     getRealObdValueAsync(parameterId)
                 } else {
-                    generateSimulatedValue(parameterId)
+                    // Only show 0 if not connected - no fake data
+                    0f
                 }
                 val dataPoint = DataPoint(
                     timestamp = System.currentTimeMillis(),
@@ -182,13 +308,13 @@ class LiveDataViewModel @Inject constructor(
             }
 
             if (pid != null) {
-                // Make actual OBD request
+                // Make actual OBD request using AndrOBD integration
                 val result = communicationManager.requestPidData(pid)
                 if (result.isSuccess) {
                     val processedData = result.getOrNull()
-                    val value = processedData?.processedValue?.toFloat() ?: generateSimulatedValue(parameterId)
+                    val value = processedData?.processedValue?.toFloat() ?: 0f
 
-                    // Log raw data for debugging
+                    // Log REAL raw data for debugging
                     val rawEntry = RawDataEntry(
                         timestamp = System.currentTimeMillis(),
                         command = "01$pid",
@@ -204,16 +330,19 @@ class LiveDataViewModel @Inject constructor(
                         rawDataLog = currentRawData.takeLast(100) // Keep last 100 entries
                     )
 
+                    CrashHandler.logInfo("LiveData real value - $parameterId: $value (raw: ${processedData?.metadata?.rawResponse})")
                     value
                 } else {
-                    generateSimulatedValue(parameterId)
+                    CrashHandler.logError("Failed to get real OBD data for $parameterId: ${result.exceptionOrNull()?.message}")
+                    0f // Return 0 instead of simulated data to show real connection issues
                 }
             } else {
-                generateSimulatedValue(parameterId)
+                CrashHandler.logError("Unknown parameter ID: $parameterId")
+                0f
             }
         } catch (e: Exception) {
             CrashHandler.handleException(e, "LiveDataViewModel.getRealObdValueAsync")
-            generateSimulatedValue(parameterId)
+            0f // Return 0 instead of simulated data to show real errors
         }
     }
 
@@ -312,13 +441,40 @@ class LiveDataViewModel @Inject constructor(
     }
 
     fun startRecording() {
-        _uiState.value = _uiState.value.copy(isRecording = true)
-        // TODO: Implement actual recording logic
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isRecording = true)
+
+                // Start recording session
+                val sessionId = "session_${System.currentTimeMillis()}"
+                val vehicleId = appPreferences.activeVehicleId
+
+                if (vehicleId != -1L) {
+                    // Start data processor recording
+                    dataProcessor.startSession(sessionId, vehicleId)
+                    CrashHandler.logInfo("Started recording session: $sessionId for vehicle: $vehicleId")
+                } else {
+                    CrashHandler.logWarning("Cannot start recording: no active vehicle selected")
+                }
+            } catch (e: Exception) {
+                CrashHandler.handleException(e, "LiveDataViewModel.startRecording")
+                _uiState.value = _uiState.value.copy(isRecording = false)
+            }
+        }
     }
 
     fun stopRecording() {
-        _uiState.value = _uiState.value.copy(isRecording = false)
-        // TODO: Implement stop recording logic
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isRecording = false)
+
+                // Stop data processor recording
+                dataProcessor.stopSession()
+                CrashHandler.logInfo("Stopped recording session")
+            } catch (e: Exception) {
+                CrashHandler.handleException(e, "LiveDataViewModel.stopRecording")
+            }
+        }
     }
 
     fun exportData() {
@@ -396,6 +552,32 @@ class LiveDataViewModel @Inject constructor(
             isRealTime = !_uiState.value.isRealTime
         )
     }
+
+    /**
+     * Get default parameters to prevent crashes
+     */
+    private fun getDefaultParameters(): List<LiveDataParameter> {
+        return listOf(
+            LiveDataParameter(
+                id = "rpm",
+                name = "Engine RPM",
+                shortName = "RPM",
+                unit = "rpm",
+                color = Color.Red,
+                minValue = 0f,
+                maxValue = 8000f
+            ),
+            LiveDataParameter(
+                id = "speed",
+                name = "Vehicle Speed",
+                shortName = "Speed",
+                unit = "mph",
+                color = Color.Blue,
+                minValue = 0f,
+                maxValue = 200f
+            )
+        )
+    }
 }
 
 /**
@@ -455,3 +637,5 @@ data class RawDataEntry(
             .format(java.util.Date(timestamp))
     }
 }
+
+

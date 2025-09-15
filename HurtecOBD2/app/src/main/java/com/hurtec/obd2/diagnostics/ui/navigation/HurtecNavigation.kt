@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +67,7 @@ fun HurtecNavigation() {
     // Bottom navigation items
     val bottomNavItems = listOf(
         BottomNavItem.Dashboard,
+        BottomNavItem.LiveData,
         BottomNavItem.Diagnostics,
         BottomNavItem.Connection,
         BottomNavItem.Settings
@@ -120,17 +122,35 @@ fun HurtecNavigation() {
                 CircularProgressIndicator()
             }
         } else {
+            CrashHandler.logInfo("HurtecNavigation: Starting navigation with destination: ${mainUiState.startDestination}")
+
             NavHost(
                 navController = navController,
-                startDestination = mainUiState.startDestination,
+                startDestination = if (mainUiState.startDestination.isNotEmpty()) mainUiState.startDestination else "welcome",
                 modifier = Modifier.padding(innerPadding)
             ) {
             composable("welcome") {
                 WelcomeScreen(
                     navController = navController,
                     onGetStarted = {
-                        navController.navigate("onboarding") {
-                            popUpTo("welcome") { inclusive = true }
+                        try {
+                            CrashHandler.logInfo("HurtecNavigation: Navigating from welcome to onboarding")
+                            navController.navigate("onboarding") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        } catch (e: Exception) {
+                            CrashHandler.handleException(e, "HurtecNavigation.welcome.onGetStarted")
+                        }
+                    },
+                    onSkip = {
+                        try {
+                            CrashHandler.logInfo("HurtecNavigation: Skip welcome, updating preferences and going to dashboard")
+                            mainViewModel.skipToMain()
+                            navController.navigate("dashboard") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        } catch (e: Exception) {
+                            CrashHandler.handleException(e, "HurtecNavigation.welcome.onSkip")
                         }
                     }
                 )
@@ -207,7 +227,7 @@ fun HurtecNavigation() {
                 }
             }
 
-            composable("livedata") {
+            composable(BottomNavItem.LiveData.route) {
                 ErrorBoundary {
                     LiveDataScreen(navController = navController)
                 }
@@ -244,21 +264,28 @@ sealed class BottomNavItem(
         selectedIcon = Icons.Filled.Dashboard,
         unselectedIcon = Icons.Filled.Dashboard
     )
-    
+
+    object LiveData : BottomNavItem(
+        route = "livedata",
+        titleRes = R.string.nav_livedata,
+        selectedIcon = Icons.Filled.Timeline,
+        unselectedIcon = Icons.Filled.Timeline
+    )
+
     object Diagnostics : BottomNavItem(
         route = "diagnostics",
         titleRes = R.string.nav_diagnostics,
         selectedIcon = Icons.Filled.BugReport,
         unselectedIcon = Icons.Filled.BugReport
     )
-    
+
     object Connection : BottomNavItem(
         route = "connection",
         titleRes = R.string.nav_connection,
         selectedIcon = Icons.Filled.Bluetooth,
         unselectedIcon = Icons.Filled.BluetoothDisabled
     )
-    
+
     object Settings : BottomNavItem(
         route = "settings",
         titleRes = R.string.nav_settings,

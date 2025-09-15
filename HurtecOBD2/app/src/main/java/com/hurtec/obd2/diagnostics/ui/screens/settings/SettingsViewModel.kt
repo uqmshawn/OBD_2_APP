@@ -37,11 +37,11 @@ class SettingsViewModel @Inject constructor(
                 keepScreenOn = appPreferences.keepScreenOn,
                 enableLogging = appPreferences.dataLoggingEnabled,
                 demoMode = appPreferences.demoMode,
-                dataRetentionDays = 30, // Default value for now
-                temperatureUnit = TemperatureUnit.FAHRENHEIT, // Default value for now
-                distanceUnit = DistanceUnit.MILES, // Default value for now
-                pressureUnit = PressureUnit.PSI, // Default value for now
-                theme = AppTheme.SYSTEM // Default value for now
+                dataRetentionDays = appPreferences.dataRetentionDays,
+                temperatureUnit = TemperatureUnit.fromString(appPreferences.temperatureUnit),
+                distanceUnit = DistanceUnit.fromString(appPreferences.distanceUnit),
+                pressureUnit = PressureUnit.fromString(appPreferences.pressureUnit),
+                theme = AppTheme.fromString(appPreferences.appTheme)
             )
         }
     }
@@ -87,31 +87,31 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateDataRetentionDays(days: Int) {
-        // Save to preferences (we'll add this key to AppPreferences)
+        appPreferences.dataRetentionDays = days
         _uiState.value = _uiState.value.copy(dataRetentionDays = days)
         CrashHandler.logInfo("Data retention days updated: $days")
     }
 
     fun updateTemperatureUnit(unit: TemperatureUnit) {
-        // Save to preferences (we'll add this key to AppPreferences)
+        appPreferences.temperatureUnit = unit.name.lowercase()
         _uiState.value = _uiState.value.copy(temperatureUnit = unit)
         CrashHandler.logInfo("Temperature unit updated: ${unit.displayName}")
     }
 
     fun updateDistanceUnit(unit: DistanceUnit) {
-        // Save to preferences (we'll add this key to AppPreferences)
+        appPreferences.distanceUnit = unit.name.lowercase()
         _uiState.value = _uiState.value.copy(distanceUnit = unit)
         CrashHandler.logInfo("Distance unit updated: ${unit.displayName}")
     }
 
     fun updatePressureUnit(unit: PressureUnit) {
-        // Save to preferences (we'll add this key to AppPreferences)
+        appPreferences.pressureUnit = unit.name.lowercase()
         _uiState.value = _uiState.value.copy(pressureUnit = unit)
         CrashHandler.logInfo("Pressure unit updated: ${unit.displayName}")
     }
 
     fun updateTheme(theme: AppTheme) {
-        // Save to preferences (we'll add this key to AppPreferences)
+        appPreferences.appTheme = theme.name.lowercase()
         _uiState.value = _uiState.value.copy(theme = theme)
         CrashHandler.logInfo("Theme updated: ${theme.displayName}")
     }
@@ -284,7 +284,17 @@ data class AppStatistics(
  */
 enum class TemperatureUnit(val displayName: String) {
     CELSIUS("Celsius (°C)"),
-    FAHRENHEIT("Fahrenheit (°F)")
+    FAHRENHEIT("Fahrenheit (°F)");
+
+    companion object {
+        fun fromString(value: String): TemperatureUnit {
+            return when (value.lowercase()) {
+                "celsius" -> CELSIUS
+                "fahrenheit" -> FAHRENHEIT
+                else -> FAHRENHEIT
+            }
+        }
+    }
 }
 
 /**
@@ -292,7 +302,17 @@ enum class TemperatureUnit(val displayName: String) {
  */
 enum class DistanceUnit(val displayName: String) {
     KILOMETERS("Kilometers"),
-    MILES("Miles")
+    MILES("Miles");
+
+    companion object {
+        fun fromString(value: String): DistanceUnit {
+            return when (value.lowercase()) {
+                "kilometers", "km" -> KILOMETERS
+                "miles" -> MILES
+                else -> MILES
+            }
+        }
+    }
 }
 
 /**
@@ -301,7 +321,18 @@ enum class DistanceUnit(val displayName: String) {
 enum class PressureUnit(val displayName: String) {
     PSI("PSI"),
     BAR("Bar"),
-    KPA("kPa")
+    KPA("kPa");
+
+    companion object {
+        fun fromString(value: String): PressureUnit {
+            return when (value.lowercase()) {
+                "psi" -> PSI
+                "bar" -> BAR
+                "kpa" -> KPA
+                else -> PSI
+            }
+        }
+    }
 }
 
 /**
@@ -310,5 +341,16 @@ enum class PressureUnit(val displayName: String) {
 enum class AppTheme(val displayName: String) {
     LIGHT("Light"),
     DARK("Dark"),
-    SYSTEM("System Default")
+    SYSTEM("System Default");
+
+    companion object {
+        fun fromString(value: String): AppTheme {
+            return when (value.lowercase()) {
+                "light" -> LIGHT
+                "dark" -> DARK
+                "system" -> SYSTEM
+                else -> SYSTEM
+            }
+        }
+    }
 }

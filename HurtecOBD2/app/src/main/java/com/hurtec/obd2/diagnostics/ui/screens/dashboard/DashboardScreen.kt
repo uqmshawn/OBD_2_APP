@@ -26,9 +26,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hurtec.obd2.diagnostics.ui.theme.*
+import com.hurtec.obd2.diagnostics.utils.CrashHandler
 import kotlin.math.*
 
 /**
@@ -39,8 +40,10 @@ import kotlin.math.*
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    viewModel: DashboardViewModel = viewModel()
+    viewModel: DashboardViewModel = hiltViewModel()
 ) {
+    CrashHandler.logInfo("DashboardScreen: Starting dashboard composition")
+
     val uiState by viewModel.uiState.collectAsState()
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600

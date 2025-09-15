@@ -33,16 +33,39 @@ class AppPreferences @Inject constructor(
         private const val KEY_DATA_LOGGING_ENABLED = "data_logging_enabled"
         private const val KEY_EXPORT_FORMAT = "export_format"
         private const val KEY_LOCATION_ENABLED = "location_enabled"
+        private const val KEY_DATA_RETENTION_DAYS = "data_retention_days"
+        private const val KEY_TEMPERATURE_UNIT = "temperature_unit"
+        private const val KEY_DISTANCE_UNIT = "distance_unit"
+        private const val KEY_PRESSURE_UNIT = "pressure_unit"
+        private const val KEY_APP_THEME = "app_theme"
     }
     
     // First launch and onboarding
     var isFirstLaunch: Boolean
-        get() = prefs.getBoolean(KEY_FIRST_LAUNCH, true)
-        set(value) = prefs.edit { putBoolean(KEY_FIRST_LAUNCH, value) }
+        get() = try {
+            prefs.getBoolean(KEY_FIRST_LAUNCH, true)
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "AppPreferences.isFirstLaunch.get")
+            true // Default to first launch on error
+        }
+        set(value) = try {
+            prefs.edit { putBoolean(KEY_FIRST_LAUNCH, value) }
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "AppPreferences.isFirstLaunch.set")
+        }
     
     var isOnboardingCompleted: Boolean
-        get() = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
-        set(value) = prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, value) }
+        get() = try {
+            prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "AppPreferences.isOnboardingCompleted.get")
+            false // Default to not completed on error
+        }
+        set(value) = try {
+            prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, value) }
+        } catch (e: Exception) {
+            CrashHandler.handleException(e, "AppPreferences.isOnboardingCompleted.set")
+        }
     
     // Vehicle settings
     var activeVehicleId: Long
@@ -90,6 +113,31 @@ class AppPreferences @Inject constructor(
     var locationEnabled: Boolean
         get() = prefs.getBoolean(KEY_LOCATION_ENABLED, false)
         set(value) = prefs.edit { putBoolean(KEY_LOCATION_ENABLED, value) }
+
+    // Data retention
+    var dataRetentionDays: Int
+        get() = prefs.getInt(KEY_DATA_RETENTION_DAYS, 30)
+        set(value) = prefs.edit { putInt(KEY_DATA_RETENTION_DAYS, value) }
+
+    // Temperature unit
+    var temperatureUnit: String
+        get() = prefs.getString(KEY_TEMPERATURE_UNIT, "fahrenheit") ?: "fahrenheit"
+        set(value) = prefs.edit { putString(KEY_TEMPERATURE_UNIT, value) }
+
+    // Distance unit
+    var distanceUnit: String
+        get() = prefs.getString(KEY_DISTANCE_UNIT, "miles") ?: "miles"
+        set(value) = prefs.edit { putString(KEY_DISTANCE_UNIT, value) }
+
+    // Pressure unit
+    var pressureUnit: String
+        get() = prefs.getString(KEY_PRESSURE_UNIT, "psi") ?: "psi"
+        set(value) = prefs.edit { putString(KEY_PRESSURE_UNIT, value) }
+
+    // App theme
+    var appTheme: String
+        get() = prefs.getString(KEY_APP_THEME, "system") ?: "system"
+        set(value) = prefs.edit { putString(KEY_APP_THEME, value) }
     
     /**
      * Check if app setup is complete

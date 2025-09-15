@@ -6,6 +6,7 @@
 
     <!-- Navigation -->
     <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_livedata">Live Data</string>
     <string name="nav_diagnostics">Diagnostics</string>
     <string name="nav_connection">Connection</string>
     <string name="nav_data">Live Data</string>

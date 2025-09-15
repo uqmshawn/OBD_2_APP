@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.hurtec.obd2.diagnostics.R
+import com.hurtec.obd2.diagnostics.utils.CrashHandler
+import com.hurtec.obd2.diagnostics.data.preferences.AppPreferences
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 
 /**
@@ -35,7 +38,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun WelcomeScreen(
     navController: NavController,
-    onGetStarted: () -> Unit
+    onGetStarted: () -> Unit,
+    onSkip: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
     var logoScale by remember { mutableFloatStateOf(0f) }
@@ -171,7 +175,14 @@ fun WelcomeScreen(
             
             // Get Started Button
             Button(
-                onClick = onGetStarted,
+                onClick = {
+                    try {
+                        CrashHandler.logInfo("WelcomeScreen: Get Started button clicked")
+                        onGetStarted()
+                    } catch (e: Exception) {
+                        CrashHandler.handleException(e, "WelcomeScreen.GetStarted.onClick")
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -201,7 +212,14 @@ fun WelcomeScreen(
             
             // Skip Button
             TextButton(
-                onClick = { navController.navigate("main") },
+                onClick = {
+                    try {
+                        CrashHandler.logInfo("WelcomeScreen: Skip button clicked")
+                        onSkip()
+                    } catch (e: Exception) {
+                        CrashHandler.handleException(e, "WelcomeScreen.Skip.onClick")
+                    }
+                },
                 modifier = Modifier.alpha(contentAlpha)
             ) {
                 Text(

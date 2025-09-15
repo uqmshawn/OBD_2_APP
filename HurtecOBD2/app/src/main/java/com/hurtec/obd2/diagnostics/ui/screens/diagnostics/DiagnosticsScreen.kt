@@ -23,7 +23,6 @@ import com.hurtec.obd2.diagnostics.obd.communication.ConnectionState
 import com.hurtec.obd2.diagnostics.obd.elm327.DtcInfo
 import com.hurtec.obd2.diagnostics.obd.elm327.DtcStatus
 import com.hurtec.obd2.diagnostics.ui.components.*
-import com.hurtec.obd2.diagnostics.ui.viewmodels.DiagnosticsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -64,11 +63,11 @@ fun DiagnosticsScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = viewModel::scanDtcs,
-                enabled = !uiState.isScanning,
+                onClick = viewModel::loadDtcs,
+                enabled = !uiState.isLoading,
                 modifier = Modifier.weight(1f)
             ) {
-                if (uiState.isScanning) {
+                if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -76,7 +75,7 @@ fun DiagnosticsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(if (uiState.isScanning) "Scanning..." else "Scan DTCs")
+                Text(if (uiState.isLoading) "Scanning..." else "Scan DTCs")
             }
 
             OutlinedButton(
@@ -151,7 +150,7 @@ fun DiagnosticsScreen(
                     SimpleDtcCard(dtc = dtc)
                 }
             }
-        } else if (!uiState.isScanning) {
+        } else if (!uiState.isLoading) {
             // Empty state
             Card(
                 modifier = Modifier.fillMaxWidth(),
